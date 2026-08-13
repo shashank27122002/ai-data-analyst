@@ -1,0 +1,69 @@
+# ==========================================
+# AI DATA ANALYST - BACKEND REQUIREMENTS
+# ==========================================
+
+# ---------- FastAPI ----------
+fastapi
+uvicorn[standard]
+python-multipart
+
+# ---------- Environment / Configuration ----------
+python-dotenv
+pydantic
+pydantic-settings
+
+# ---------- Data Processing ----------
+pandas
+numpy
+openpyxl
+
+# ---------- PostgreSQL ----------
+sqlalchemy
+psycopg2-binary
+pgvector
+
+# ---------- RAG / LangChain ----------
+langchain
+langchain-core
+langchain-community
+langchain-text-splitters
+
+# ---------- LangGraph ----------
+langgraph
+
+# ---------- Groq LLM ----------
+groq
+langchain-groq
+
+# ---------- Embeddings ----------
+sentence-transformers
+
+# ---------- Machine Learning / Analytics ----------
+scikit-learn
+scipy
+
+# ---------- Visualization ----------
+plotly
+matplotlib
+
+# ---------- PDF Report Generation ----------
+reportlab
+
+# ---------- DOCX Report Generation ----------
+python-docx
+
+# ---------- Authentication / Security ----------
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+
+# ---------- HTTP ----------
+httpx
+requests
+
+# ---------- Validation / Utilities ----------
+email-validator
+
+# ---------- Testing ----------
+pytest
+pytest-asyncio
