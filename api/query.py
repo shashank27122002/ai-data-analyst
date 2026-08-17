@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+import numpy as np
 
 from router.query_router import route_question
 from pipeline import run_pipeline
@@ -24,6 +25,54 @@ class QueryRequest(BaseModel):
     dataset_id: int
 
     question: str
+
+
+# ============================================================
+# JSON SAFE CONVERSION
+# ============================================================
+
+def make_json_safe(value):
+    """
+    Recursively convert NumPy values into normal Python
+    values so FastAPI can safely serialize the response.
+    """
+
+    # NumPy scalar values
+    if isinstance(value, np.generic):
+
+        return value.item()
+
+    # NumPy arrays
+    if isinstance(value, np.ndarray):
+
+        return value.tolist()
+
+    # Dictionaries
+    if isinstance(value, dict):
+
+        return {
+            key: make_json_safe(val)
+            for key, val in value.items()
+        }
+
+    # Lists
+    if isinstance(value, list):
+
+        return [
+            make_json_safe(item)
+            for item in value
+        ]
+
+    # Tuples
+    if isinstance(value, tuple):
+
+        return [
+            make_json_safe(item)
+            for item in value
+        ]
+
+    # Normal Python values
+    return value
 
 
 # ============================================================
@@ -198,10 +247,12 @@ def query_dataset(
         )
 
         # ====================================================
-        # 9. RETURN RESPONSE
+        # 9. RETURN JSON-SAFE RESPONSE
         # ====================================================
 
-        return response
+        return make_json_safe(
+            response
+        )
 
     # ========================================================
     # VALUE ERROR

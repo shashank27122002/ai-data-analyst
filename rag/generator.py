@@ -3,10 +3,18 @@ from groq import Groq
 from config import settings
 
 
+# ============================================================
+# GROQ CLIENT
+# ============================================================
+
 client = Groq(
     api_key=settings.GROQ_API_KEY
 )
 
+
+# ============================================================
+# GENERATE ANSWER
+# ============================================================
 
 def generate_answer(
     question: str,
@@ -18,6 +26,10 @@ def generate_answer(
 
     The provided context is authoritative.
     """
+
+    # ========================================================
+    # PROMPT
+    # ========================================================
 
     prompt = f"""
 You are an AI Data Analyst.
@@ -77,8 +89,12 @@ ANSWER
 ============================================================
 """
 
+    # ========================================================
+    # CALL GROQ
+    # ========================================================
+
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="qwen/qwen3.6-27b",
         messages=[
             {
                 "role": "system",
@@ -93,12 +109,60 @@ ANSWER
                 "content": prompt
             }
         ],
-        temperature=0
+        temperature=0,
+        reasoning_format="hidden"
     )
 
-    answer = response.choices[0].message.content
+    # ========================================================
+    # GET ANSWER
+    # ========================================================
+
+    answer = (
+        response
+        .choices[0]
+        .message
+        .content
+    )
+
+    # ========================================================
+    # EMPTY RESPONSE
+    # ========================================================
 
     if not answer:
-        return "I could not generate an answer."
 
-    return answer.strip()
+        return (
+            "I could not generate an answer."
+        )
+
+    # ========================================================
+    # CLEAN ANSWER
+    # ========================================================
+
+    answer = answer.strip()
+
+    # ========================================================
+    # SAFETY CLEANUP
+    # ========================================================
+
+    # In case the model still returns
+    # reasoning tags for any reason.
+
+    if "<think>" in answer:
+
+        if "</think>" in answer:
+
+            answer = (
+                answer
+                .split("</think>", 1)[1]
+                .strip()
+            )
+
+        else:
+
+            answer = (
+                answer
+                .replace("<think>", "")
+                .strip()
+            )
+
+    return answer

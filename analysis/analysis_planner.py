@@ -1074,7 +1074,7 @@ Return ONLY the JSON analysis plan.
     # ========================================================
 
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="qwen/qwen3.6-27b",
         messages=[
             {
                 "role": "system",
@@ -1085,7 +1085,11 @@ Return ONLY the JSON analysis plan.
                 "content": user_prompt
             }
         ],
-        temperature=0
+        temperature=0,
+        reasoning_format="hidden",
+        response_format={
+            "type": "json_object"
+        }
     )
 
     # ========================================================
