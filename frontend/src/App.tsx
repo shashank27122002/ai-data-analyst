@@ -11,8 +11,11 @@ import {
   askQuestion,
   uploadDataset,
   getDatasetPreview,
+  deleteDataset,
+  getDatasetStatistics,
   type Dataset,
   type DatasetPreviewResponse,
+  type DatasetStatistics,
 } from "./api/api";
 
 interface RecentQuestion {
@@ -27,7 +30,8 @@ type Page =
   | "reports";
 
 function App() {
-  const [question, setQuestion] = useState("");
+  const [question, setQuestion] =
+    useState("");
 
   const [datasets, setDatasets] =
     useState<Dataset[]>([]);
@@ -50,10 +54,19 @@ function App() {
   const [uploadingDataset, setUploadingDataset] =
     useState(false);
 
+  const [deletingDatasetId, setDeletingDatasetId] =
+    useState<number | null>(null);
+
   const [preview, setPreview] =
     useState<DatasetPreviewResponse | null>(null);
 
   const [loadingPreview, setLoadingPreview] =
+    useState(false);
+
+  const [statistics, setStatistics] =
+    useState<DatasetStatistics | null>(null);
+
+  const [loadingStatistics, setLoadingStatistics] =
     useState(false);
 
   const [error, setError] =
@@ -61,6 +74,7 @@ function App() {
 
   const [currentPage, setCurrentPage] =
     useState<Page>("dashboard");
+
 
   // ========================================================
   // LOAD DATASETS
@@ -88,8 +102,12 @@ function App() {
         setSelectedDataset(
           response.datasets[0]
         );
+      } else {
+        setSelectedDataset(null);
       }
+
     } catch (error) {
+
       console.error(
         "Failed to load datasets:",
         error
@@ -98,10 +116,12 @@ function App() {
       setError(
         "Unable to connect to the backend."
       );
+
     } finally {
       setLoadingDatasets(false);
     }
   }
+
 
   // ========================================================
   // UPLOAD DATASET
@@ -134,23 +154,15 @@ function App() {
     }
 
     try {
+
       setUploadingDataset(true);
       setError("");
       setAnswer("");
       setPreview(null);
-
-      console.log(
-        "Uploading dataset:",
-        file.name
-      );
+      setStatistics(null);
 
       const response =
         await uploadDataset(file);
-
-      console.log(
-        "Dataset uploaded:",
-        response
-      );
 
       const datasetsResponse =
         await getDatasets();
@@ -170,12 +182,15 @@ function App() {
         );
 
       if (newDataset) {
+
         setSelectedDataset(
           newDataset
         );
+
       } else if (
         updatedDatasets.length > 0
       ) {
+
         setSelectedDataset(
           updatedDatasets[
             updatedDatasets.length - 1
@@ -188,6 +203,7 @@ function App() {
       );
 
     } catch (error) {
+
       console.error(
         "Dataset upload failed:",
         error
@@ -198,35 +214,43 @@ function App() {
           ? error.message
           : "Failed to upload dataset."
       );
+
     } finally {
+
       setUploadingDataset(false);
 
       event.target.value = "";
     }
   }
 
+
   // ========================================================
-  // OPEN FILE PICKER
+  // OPEN UPLOAD PICKER
   // ========================================================
 
   function openUploadPicker() {
+
     document
       .getElementById(
         "dataset-upload"
       )
       ?.click();
+
   }
+
 
   // ========================================================
   // ASK QUESTION
   // ========================================================
 
   async function handleAskQuestion() {
+
     if (!question.trim()) {
       return;
     }
 
     if (!selectedDataset) {
+
       setError(
         "Please select a dataset first."
       );
@@ -235,6 +259,7 @@ function App() {
     }
 
     try {
+
       setAskingQuestion(true);
       setError("");
       setAnswer("");
@@ -264,7 +289,9 @@ function App() {
           ...previous,
         ].slice(0, 5)
       );
+
     } catch (error) {
+
       console.error(
         "Question failed:",
         error
@@ -275,10 +302,13 @@ function App() {
           ? error.message
           : "Failed to process the question."
       );
+
     } finally {
+
       setAskingQuestion(false);
     }
   }
+
 
   // ========================================================
   // RECENT QUESTION
@@ -287,6 +317,7 @@ function App() {
   function handleRecentQuestion(
     recent: RecentQuestion
   ) {
+
     setQuestion(
       recent.question
     );
@@ -302,6 +333,7 @@ function App() {
     );
   }
 
+
   // ========================================================
   // SELECT DATASET
   // ========================================================
@@ -309,6 +341,7 @@ function App() {
   function handleDatasetChange(
     datasetId: number
   ) {
+
     const dataset =
       datasets.find(
         (item) =>
@@ -322,8 +355,10 @@ function App() {
 
     setAnswer("");
     setPreview(null);
+    setStatistics(null);
     setError("");
   }
+
 
   // ========================================================
   // PREVIEW DATASET
@@ -332,7 +367,9 @@ function App() {
   async function handlePreviewDataset(
     datasetId: number
   ) {
+
     try {
+
       setLoadingPreview(true);
       setError("");
       setPreview(null);
@@ -343,9 +380,12 @@ function App() {
           10
         );
 
-      setPreview(response);
+      setPreview(
+        response
+      );
 
     } catch (error) {
+
       console.error(
         "Failed to load preview:",
         error
@@ -356,10 +396,168 @@ function App() {
           ? error.message
           : "Failed to load dataset preview."
       );
+
     } finally {
+
       setLoadingPreview(false);
     }
   }
+
+
+  // ========================================================
+  // DATASET STATISTICS
+  // ========================================================
+
+  async function handleStatistics(
+    datasetId: number
+  ) {
+
+    try {
+
+      setLoadingStatistics(true);
+      setError("");
+      setStatistics(null);
+
+      const response =
+        await getDatasetStatistics(
+          datasetId
+        );
+
+      setStatistics(
+        response
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to load statistics:",
+        error
+      );
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load dataset statistics."
+      );
+
+    } finally {
+
+      setLoadingStatistics(false);
+    }
+  }
+
+
+  // ========================================================
+  // DELETE DATASET
+  // ========================================================
+
+  async function handleDeleteDataset(
+    dataset: Dataset
+  ) {
+
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to delete "${dataset.original_filename}"?\n\nThis will permanently delete the dataset, its database table, embeddings, and uploaded file.`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+
+      setDeletingDatasetId(
+        dataset.dataset_id
+      );
+
+      setError("");
+      setPreview(null);
+      setStatistics(null);
+
+      await deleteDataset(
+        dataset.dataset_id
+      );
+
+      setDatasets(
+        (previous) =>
+          previous.filter(
+            (item) =>
+              item.dataset_id !==
+              dataset.dataset_id
+          )
+      );
+
+      if (
+        selectedDataset?.dataset_id ===
+        dataset.dataset_id
+      ) {
+
+        setSelectedDataset(null);
+        setAnswer("");
+
+      }
+
+      const response =
+        await getDatasets();
+
+      const updatedDatasets =
+        response.datasets;
+
+      setDatasets(
+        updatedDatasets
+      );
+
+      if (
+        updatedDatasets.length > 0
+      ) {
+
+        const currentSelectionStillExists =
+          selectedDataset &&
+          selectedDataset.dataset_id !==
+            dataset.dataset_id &&
+          updatedDatasets.some(
+            (item) =>
+              item.dataset_id ===
+              selectedDataset.dataset_id
+          );
+
+        if (
+          !currentSelectionStillExists
+        ) {
+
+          setSelectedDataset(
+            updatedDatasets[0]
+          );
+
+        }
+
+      } else {
+
+        setSelectedDataset(null);
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Failed to delete dataset:",
+        error
+      );
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete dataset."
+      );
+
+    } finally {
+
+      setDeletingDatasetId(
+        null
+      );
+    }
+  }
+
 
   // ========================================================
   // NAVIGATION
@@ -368,16 +566,21 @@ function App() {
   function handleNavigation(
     page: Page
   ) {
+
     setCurrentPage(page);
     setError("");
+
   }
+
 
   // ========================================================
   // SIDEBAR
   // ========================================================
 
   function renderSidebar() {
+
     return (
+
       <aside className="sidebar">
 
         <div className="brand">
@@ -387,6 +590,7 @@ function App() {
           </div>
 
           <div>
+
             <h2>
               AI Data Analyst
             </h2>
@@ -394,9 +598,11 @@ function App() {
             <span>
               Intelligent analytics
             </span>
+
           </div>
 
         </div>
+
 
         <nav className="navigation">
 
@@ -417,6 +623,7 @@ function App() {
             Dashboard
           </button>
 
+
           <button
             className={`nav-item ${
               currentPage === "datasets"
@@ -434,6 +641,7 @@ function App() {
             Datasets
           </button>
 
+
           <button
             className={`nav-item ${
               currentPage === "analyst"
@@ -450,6 +658,7 @@ function App() {
             <span>◉</span>
             AI Analyst
           </button>
+
 
           <button
             className={`nav-item ${
@@ -470,6 +679,7 @@ function App() {
 
         </nav>
 
+
         <div className="sidebar-bottom">
 
           <div className="status">
@@ -488,12 +698,15 @@ function App() {
     );
   }
 
+
   // ========================================================
   // DASHBOARD
   // ========================================================
 
   function renderDashboard() {
+
     return (
+
       <>
 
         <header className="topbar">
@@ -510,6 +723,7 @@ function App() {
 
           </div>
 
+
           <button
             className="upload-button"
             type="button"
@@ -520,12 +734,15 @@ function App() {
               openUploadPicker
             }
           >
+
             {uploadingDataset
               ? "Uploading..."
               : "+ Upload Dataset"}
+
           </button>
 
         </header>
+
 
         <input
           id="dataset-upload"
@@ -538,6 +755,7 @@ function App() {
             handleUploadDataset
           }
         />
+
 
         {/* WELCOME */}
 
@@ -563,13 +781,15 @@ function App() {
 
           </div>
 
+
           <div className="welcome-icon">
             ✦
           </div>
 
         </section>
 
-        {/* STATISTICS */}
+
+        {/* STATISTICS SUMMARY */}
 
         <section className="stats-grid">
 
@@ -589,6 +809,7 @@ function App() {
 
           </div>
 
+
           <div className="stat-card">
 
             <span className="stat-label">
@@ -604,6 +825,7 @@ function App() {
             </span>
 
           </div>
+
 
           <div className="stat-card">
 
@@ -623,6 +845,7 @@ function App() {
 
         </section>
 
+
         {/* ANALYST */}
 
         <section className="analyst-section">
@@ -641,6 +864,7 @@ function App() {
 
             </div>
 
+
             <span className="dataset-badge">
 
               {loadingDatasets
@@ -652,6 +876,7 @@ function App() {
             </span>
 
           </div>
+
 
           <div className="question-card">
 
@@ -674,6 +899,7 @@ function App() {
               </div>
 
             </div>
+
 
             {/* DATASET SELECTOR */}
 
@@ -709,9 +935,11 @@ function App() {
                           dataset.dataset_id
                         }
                       >
+
                         {
                           dataset.original_filename
                         }
+
                       </option>
 
                     )
@@ -722,6 +950,7 @@ function App() {
               </div>
 
             )}
+
 
             <textarea
               value={question}
@@ -748,11 +977,13 @@ function App() {
               rows={4}
             />
 
+
             <div className="question-footer">
 
               <span>
                 Try: "Which products were sold in South?"
               </span>
+
 
               <button
                 className="ask-button"
@@ -781,6 +1012,7 @@ function App() {
 
           </div>
 
+
           {/* ERROR */}
 
           {error && (
@@ -790,6 +1022,7 @@ function App() {
             </div>
 
           )}
+
 
           {/* ANSWER */}
 
@@ -817,6 +1050,7 @@ function App() {
 
               </div>
 
+
               <p className="answer-text">
                 {answer}
               </p>
@@ -826,6 +1060,7 @@ function App() {
           )}
 
         </section>
+
 
         {/* RECENT QUESTIONS */}
 
@@ -846,6 +1081,7 @@ function App() {
             </div>
 
           </div>
+
 
           {recentQuestions.length === 0 ? (
 
@@ -919,12 +1155,15 @@ function App() {
     );
   }
 
+
   // ========================================================
   // DATASETS PAGE
   // ========================================================
 
   function renderDatasets() {
+
     return (
+
       <>
 
         <header className="topbar">
@@ -941,6 +1180,7 @@ function App() {
 
           </div>
 
+
           <button
             className="upload-button"
             type="button"
@@ -951,12 +1191,15 @@ function App() {
               openUploadPicker
             }
           >
+
             {uploadingDataset
               ? "Uploading..."
               : "+ Upload Dataset"}
+
           </button>
 
         </header>
+
 
         <section className="datasets-page">
 
@@ -974,14 +1217,18 @@ function App() {
 
             </div>
 
+
             <span className="dataset-badge">
+
               {datasets.length} dataset
               {datasets.length === 1
                 ? ""
                 : "s"}
+
             </span>
 
           </div>
+
 
           {loadingDatasets ? (
 
@@ -1035,6 +1282,7 @@ function App() {
                       ▣
                     </div>
 
+
                     <div className="dataset-card-content">
 
                       <h3>
@@ -1047,6 +1295,7 @@ function App() {
                         Dataset ID:{" "}
                         {dataset.dataset_id}
                       </p>
+
 
                       <div className="dataset-meta">
 
@@ -1068,11 +1317,16 @@ function App() {
 
                     </div>
 
+
                     <div className="dataset-card-actions">
 
                       <button
                         type="button"
                         className="dataset-preview-button"
+                        disabled={
+                          deletingDatasetId ===
+                          dataset.dataset_id
+                        }
                         onClick={() =>
                           handlePreviewDataset(
                             dataset.dataset_id
@@ -1082,9 +1336,34 @@ function App() {
                         Preview
                       </button>
 
+
+                      <button
+                        type="button"
+                        className="dataset-statistics-button"
+                        disabled={
+                          deletingDatasetId ===
+                          dataset.dataset_id ||
+                          loadingStatistics
+                        }
+                        onClick={() =>
+                          handleStatistics(
+                            dataset.dataset_id
+                          )
+                        }
+                      >
+                        {loadingStatistics
+                          ? "Loading..."
+                          : "Statistics"}
+                      </button>
+
+
                       <button
                         type="button"
                         className="dataset-select-button"
+                        disabled={
+                          deletingDatasetId ===
+                          dataset.dataset_id
+                        }
                         onClick={() => {
 
                           setSelectedDataset(
@@ -1093,6 +1372,7 @@ function App() {
 
                           setAnswer("");
                           setPreview(null);
+                          setStatistics(null);
                           setError("");
 
                           setCurrentPage(
@@ -1102,6 +1382,28 @@ function App() {
                         }}
                       >
                         Analyze
+                      </button>
+
+
+                      <button
+                        type="button"
+                        className="dataset-delete-button"
+                        disabled={
+                          deletingDatasetId ===
+                          dataset.dataset_id
+                        }
+                        onClick={() =>
+                          handleDeleteDataset(
+                            dataset
+                          )
+                        }
+                      >
+
+                        {deletingDatasetId ===
+                        dataset.dataset_id
+                          ? "Deleting..."
+                          : "Delete"}
+
                       </button>
 
                     </div>
@@ -1114,6 +1416,7 @@ function App() {
             </div>
 
           )}
+
 
           {/* PREVIEW */}
 
@@ -1128,6 +1431,7 @@ function App() {
             </div>
 
           )}
+
 
           {preview &&
             !loadingPreview && (
@@ -1150,13 +1454,17 @@ function App() {
 
                   </div>
 
+
                   <span className="dataset-badge">
+
                     Showing{" "}
                     {preview.preview_rows} of{" "}
                     {preview.total_rows} rows
+
                   </span>
 
                 </div>
+
 
                 <div className="preview-table-wrapper">
 
@@ -1180,6 +1488,7 @@ function App() {
 
                     </thead>
 
+
                     <tbody>
 
                       {preview.data.map(
@@ -1195,6 +1504,7 @@ function App() {
                                 <td
                                   key={column}
                                 >
+
                                   {row[column] ===
                                     null ||
                                   row[column] ===
@@ -1203,6 +1513,7 @@ function App() {
                                     : String(
                                         row[column]
                                       )}
+
                                 </td>
 
                               )
@@ -1223,18 +1534,205 @@ function App() {
 
             )}
 
+
+          {/* STATISTICS */}
+
+          {loadingStatistics && (
+
+            <div className="empty-state">
+
+              <h3>
+                Loading statistics...
+              </h3>
+
+            </div>
+
+          )}
+
+
+          {statistics &&
+            !loadingStatistics && (
+
+              <section className="statistics-section">
+
+                <div className="section-heading">
+
+                  <div>
+
+                    <p className="eyebrow">
+                      DATASET STATISTICS
+                    </p>
+
+                    <h2>
+                      Numeric analysis
+                    </h2>
+
+                  </div>
+
+
+                  <span className="dataset-badge">
+                    {statistics.rows} rows ·{" "}
+                    {statistics.columns} columns
+                  </span>
+
+                </div>
+
+
+                {statistics.numeric_columns.length ===
+                0 ? (
+
+                  <div className="empty-state">
+
+                    <h3>
+                      No numeric columns
+                    </h3>
+
+                    <p>
+                      This dataset does not
+                      contain numeric columns
+                      for statistical analysis.
+                    </p>
+
+                  </div>
+
+                ) : (
+
+                  <div className="statistics-grid">
+
+                    {statistics.numeric_columns.map(
+                      (column) => {
+
+                        const stats =
+                          statistics
+                            .numeric_statistics[
+                            column
+                          ];
+
+                        if (!stats) {
+                          return null;
+                        }
+
+                        return (
+
+                          <div
+                            className="statistics-card"
+                            key={column}
+                          >
+
+                            <div className="statistics-card-header">
+
+                              <h3>
+                                {column}
+                              </h3>
+
+                              <span>
+                                Numeric
+                              </span>
+
+                            </div>
+
+
+                            <div className="statistics-values">
+
+                              <div className="statistics-value">
+
+                                <span>
+                                  Count
+                                </span>
+
+                                <strong>
+                                  {stats.count}
+                                </strong>
+
+                              </div>
+
+
+                              <div className="statistics-value">
+
+                                <span>
+                                  Sum
+                                </span>
+
+                                <strong>
+                                  {stats.sum}
+                                </strong>
+
+                              </div>
+
+
+                              <div className="statistics-value">
+
+                                <span>
+                                  Average
+                                </span>
+
+                                <strong>
+                                  {Number(
+                                    stats.average
+                                  ).toFixed(2)}
+                                </strong>
+
+                              </div>
+
+
+                              <div className="statistics-value">
+
+                                <span>
+                                  Minimum
+                                </span>
+
+                                <strong>
+                                  {stats.minimum ??
+                                    "—"}
+                                </strong>
+
+                              </div>
+
+
+                              <div className="statistics-value">
+
+                                <span>
+                                  Maximum
+                                </span>
+
+                                <strong>
+                                  {stats.maximum ??
+                                    "—"}
+                                </strong>
+
+                              </div>
+
+                            </div>
+
+                          </div>
+
+                        );
+                      }
+                    )}
+
+                  </div>
+
+                )}
+
+              </section>
+
+            )}
+
         </section>
 
       </>
     );
   }
 
+
   // ========================================================
   // AI ANALYST PAGE
   // ========================================================
 
   function renderAnalyst() {
+
     return (
+
       <>
 
         <header className="topbar">
@@ -1252,6 +1750,7 @@ function App() {
           </div>
 
         </header>
+
 
         <section className="welcome-card">
 
@@ -1274,11 +1773,13 @@ function App() {
 
           </div>
 
+
           <div className="welcome-icon">
             ✦
           </div>
 
         </section>
+
 
         <div
           style={{
@@ -1305,12 +1806,15 @@ function App() {
     );
   }
 
+
   // ========================================================
   // REPORTS PAGE
   // ========================================================
 
   function renderReports() {
+
     return (
+
       <>
 
         <header className="topbar">
@@ -1328,6 +1832,7 @@ function App() {
           </div>
 
         </header>
+
 
         <div className="empty-state">
 
@@ -1350,11 +1855,13 @@ function App() {
     );
   }
 
+
   // ========================================================
   // MAIN RENDER
   // ========================================================
 
   return (
+
     <div className="app">
 
       {renderSidebar()}
