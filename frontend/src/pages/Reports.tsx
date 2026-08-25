@@ -1,131 +1,118 @@
 import { useEffect, useState } from "react";
 
-interface Report {
-  datasetId: number;
-  datasetName: string;
-  question: string;
-  answer: string;
-  operation: string;
-  column: string;
-  groupBy: string | null;
-  result: unknown;
-  id: string;
-  createdAt: string;
-}
+import {
+  getReports,
+  deleteReport,
+  clearReports,
+} from "../services/reportService";
 
-const REPORTS_STORAGE_KEY =
-  "ai_data_analyst_reports";
+import type { Report } from "../types/report";
+
 
 function Reports() {
-  const [reports, setReports] = useState<Report[]>([]);
 
-  // ============================================================
+  // ==========================================================
+  // STATE
+  // ==========================================================
+
+  const [reports, setReports] =
+    useState<Report[]>([]);
+
+
+  // ==========================================================
   // LOAD REPORTS
-  // ============================================================
+  // ==========================================================
 
   useEffect(() => {
     loadReports();
   }, []);
 
+
   function loadReports() {
+
     const storedReports =
-      localStorage.getItem(
-        REPORTS_STORAGE_KEY
-      );
+      getReports();
 
-    if (!storedReports) {
-      setReports([]);
-      return;
-    }
-
-    try {
-      const parsedReports =
-        JSON.parse(storedReports);
-
-      if (Array.isArray(parsedReports)) {
-        setReports(parsedReports);
-      } else {
-        setReports([]);
-      }
-    } catch (error) {
-      console.error(
-        "Failed to load reports:",
-        error
-      );
-
-      setReports([]);
-    }
+    setReports(
+      storedReports
+    );
   }
 
-  // ============================================================
-  // DELETE ONE REPORT
-  // ============================================================
 
-  function deleteReport(
+  // ==========================================================
+  // DELETE ONE REPORT
+  // ==========================================================
+
+  function handleDeleteReport(
     reportId: string
   ) {
-    const updatedReports =
-      reports.filter(
-        (report) =>
-          report.id !== reportId
-      );
 
-    setReports(updatedReports);
+    deleteReport(
+      reportId
+    );
 
-    localStorage.setItem(
-      REPORTS_STORAGE_KEY,
-      JSON.stringify(updatedReports)
+    setReports(
+      getReports()
     );
   }
 
-  // ============================================================
+
+  // ==========================================================
   // DELETE ALL REPORTS
-  // ============================================================
+  // ==========================================================
 
-  function clearAllReports() {
+  function handleClearAll() {
+
+    clearReports();
+
     setReports([]);
-
-    localStorage.removeItem(
-      REPORTS_STORAGE_KEY
-    );
   }
 
-  // ============================================================
+
+  // ==========================================================
   // FORMAT NUMBER
-  // ============================================================
+  // ==========================================================
 
   function formatNumber(
     value: unknown
   ): string {
+
     if (
       typeof value === "number" &&
       Number.isFinite(value)
     ) {
+
       return value.toLocaleString(
         "en-US"
       );
+
     }
 
     return String(value);
   }
 
-  // ============================================================
+
+  // ==========================================================
   // FORMAT DATE
-  // ============================================================
+  // ==========================================================
 
   function formatDate(
     date: string
   ): string {
+
     const parsedDate =
       new Date(date);
+
 
     if (
       Number.isNaN(
         parsedDate.getTime()
       )
     ) {
+
       return date;
     }
+
 
     return parsedDate.toLocaleString(
       "en-US",
@@ -136,25 +123,29 @@ function Reports() {
     );
   }
 
-  // ============================================================
+
+  // ==========================================================
   // RENDER RESULT
-  // ============================================================
+  // ==========================================================
 
   function renderResult(
     report: Report
   ) {
+
     const result =
       report.result;
 
-    // ----------------------------------------------------------
+
+    // ========================================================
     // OBJECT RESULT
-    // ----------------------------------------------------------
+    // ========================================================
 
     if (
       result !== null &&
       typeof result === "object" &&
       !Array.isArray(result)
     ) {
+
       const entries =
         Object.entries(
           result as Record<
@@ -163,15 +154,18 @@ function Reports() {
           >
         );
 
+
       if (
         entries.length === 0
       ) {
+
         return (
           <div className="answer-box">
             No result available.
           </div>
         );
       }
+
 
       return (
         <div
@@ -183,6 +177,7 @@ function Reports() {
               "12px",
           }}
         >
+
           <table
             style={{
               width: "100%",
@@ -190,35 +185,22 @@ function Reports() {
                 "collapse",
             }}
           >
+
             <thead>
+
               <tr
                 style={{
                   background:
                     "#f8fafc",
                 }}
               >
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "14px 16px",
-                    borderBottom:
-                      "1px solid #e5e7eb",
-                    fontSize:
-                      "13px",
-                    textTransform:
-                      "uppercase",
-                    letterSpacing:
-                      "0.05em",
-                  }}
-                >
-                  {report.groupBy ||
-                    "Group"}
-                </th>
 
                 <th
                   style={{
-                    textAlign: "right",
-                    padding: "14px 16px",
+                    textAlign:
+                      "left",
+                    padding:
+                      "14px 16px",
                     borderBottom:
                       "1px solid #e5e7eb",
                     fontSize:
@@ -229,18 +211,53 @@ function Reports() {
                       "0.05em",
                   }}
                 >
-                  {report.column ||
-                    "Value"}
+
+                  {
+                    report.groupBy ||
+                    "Group"
+                  }
+
                 </th>
+
+
+                <th
+                  style={{
+                    textAlign:
+                      "right",
+                    padding:
+                      "14px 16px",
+                    borderBottom:
+                      "1px solid #e5e7eb",
+                    fontSize:
+                      "13px",
+                    textTransform:
+                      "uppercase",
+                    letterSpacing:
+                      "0.05em",
+                  }}
+                >
+
+                  {
+                    report.column ||
+                    "Value"
+                  }
+
+                </th>
+
               </tr>
+
             </thead>
 
+
             <tbody>
+
               {entries.map(
                 ([key, value]) => (
+
                   <tr
                     key={key}
                   >
+
                     <td
                       style={{
                         padding:
@@ -249,8 +266,11 @@ function Reports() {
                           "1px solid #e5e7eb",
                       }}
                     >
+
                       {key}
+
                     </td>
+
 
                     <td
                       style={{
@@ -264,74 +284,101 @@ function Reports() {
                           600,
                       }}
                     >
-                      {formatNumber(
-                        value
-                      )}
+
+                      {
+                        formatNumber(
+                          value
+                        )
+                      }
+
                     </td>
+
                   </tr>
+
                 )
               )}
+
             </tbody>
+
           </table>
+
         </div>
       );
     }
 
-    // ----------------------------------------------------------
+
+    // ========================================================
     // ARRAY RESULT
-    // ----------------------------------------------------------
+    // ========================================================
 
     if (
       Array.isArray(result)
     ) {
+
       return (
         <div className="answer-box">
+
           {result.map(
             (
               item,
               index
             ) => (
+
               <div
                 key={index}
               >
-                {typeof item ===
-                "object"
-                  ? JSON.stringify(
-                      item
-                    )
-                  : String(
-                      item
-                    )}
+
+                {
+                  typeof item ===
+                  "object"
+                    ? JSON.stringify(
+                        item
+                      )
+                    : String(
+                        item
+                      )
+                }
+
               </div>
+
             )
           )}
+
         </div>
       );
     }
 
-    // ----------------------------------------------------------
+
+    // ========================================================
     // NORMAL RESULT
-    // ----------------------------------------------------------
+    // ========================================================
 
     return (
       <div className="answer-box">
-        {formatNumber(
-          result
-        )}
+
+        {
+          formatNumber(
+            result
+          )
+        }
+
       </div>
     );
   }
 
-  // ============================================================
+
+  // ==========================================================
   // PAGE
-  // ============================================================
+  // ==========================================================
 
   return (
+
     <div className="page">
 
-      {/* ======================================================
+
+      {/* ====================================================
           HEADER
-      ====================================================== */}
+      ==================================================== */}
 
       <div className="page-header">
 
@@ -353,32 +400,32 @@ function Reports() {
 
         </div>
 
-        {reports.length >
-          0 && (
+
+        {reports.length > 0 && (
+
           <button
             className="secondary-button"
             onClick={
-              clearAllReports
+              handleClearAll
             }
           >
             Clear All
           </button>
+
         )}
 
       </div>
 
 
-      {/* ======================================================
+      {/* ====================================================
           EMPTY STATE
-      ====================================================== */}
+      ==================================================== */}
 
-      {reports.length ===
-        0 && (
+      {reports.length === 0 && (
+
         <section className="card">
 
-          <div
-            className="card-header"
-          >
+          <div className="card-header">
 
             <div className="icon-box">
               ✦
@@ -399,6 +446,7 @@ function Reports() {
             </div>
 
           </div>
+
 
           <div
             style={{
@@ -422,34 +470,36 @@ function Reports() {
           </div>
 
         </section>
+
       )}
 
 
-      {/* ======================================================
-          REPORTS
-      ====================================================== */}
+      {/* ====================================================
+          REPORT LIST
+      ==================================================== */}
 
-      {reports.length >
-        0 && (
-        <div
-          className="reports-list"
-        >
+      {reports.length > 0 && (
+
+        <div className="reports-list">
 
           {reports.map(
             (report) => (
 
               <section
                 className="card"
-                key={report.id}
+                key={
+                  report.id
+                }
                 style={{
                   marginBottom:
                     "24px",
                 }}
               >
 
-                {/* =================================================
+
+                {/* ==========================================
                     REPORT HEADER
-                ================================================= */}
+                ========================================== */}
 
                 <div
                   style={{
@@ -459,7 +509,8 @@ function Reports() {
                       "space-between",
                     alignItems:
                       "flex-start",
-                    gap: "20px",
+                    gap:
+                      "20px",
                   }}
                 >
 
@@ -469,11 +520,16 @@ function Reports() {
                       ANALYSIS REPORT
                     </div>
 
+
                     <h2>
-                      {report.question}
+                      {
+                        report.question
+                      }
                     </h2>
 
+
                     <p>
+
                       Dataset:{" "}
 
                       <strong>
@@ -481,7 +537,9 @@ function Reports() {
                           report.datasetName
                         }
                       </strong>
+
                     </p>
+
 
                     <p
                       style={{
@@ -491,17 +549,22 @@ function Reports() {
                           "14px",
                       }}
                     >
-                      {formatDate(
-                        report.createdAt
-                      )}
+
+                      {
+                        formatDate(
+                          report.createdAt
+                        )
+                      }
+
                     </p>
 
                   </div>
 
+
                   <button
                     className="secondary-button"
                     onClick={() =>
-                      deleteReport(
+                      handleDeleteReport(
                         report.id
                       )
                     }
@@ -512,9 +575,9 @@ function Reports() {
                 </div>
 
 
-                {/* =================================================
+                {/* ==========================================
                     ANSWER
-                ================================================= */}
+                ========================================== */}
 
                 <div
                   style={{
@@ -527,18 +590,21 @@ function Reports() {
                     ANSWER
                   </div>
 
+
                   <div className="answer-box">
 
-                    {report.answer}
+                    {
+                      report.answer
+                    }
 
                   </div>
 
                 </div>
 
 
-                {/* =================================================
+                {/* ==========================================
                     ANALYSIS DETAILS
-                ================================================= */}
+                ========================================== */}
 
                 <div
                   style={{
@@ -566,7 +632,8 @@ function Reports() {
 
                       <strong>
                         {
-                          report.operation
+                          report.operation ||
+                          "—"
                         }
                       </strong>
 
@@ -583,7 +650,8 @@ function Reports() {
 
                       <strong>
                         {
-                          report.column
+                          report.column ||
+                          "—"
                         }
                       </strong>
 
@@ -612,9 +680,9 @@ function Reports() {
                 </div>
 
 
-                {/* =================================================
+                {/* ==========================================
                     RESULT
-                ================================================= */}
+                ========================================== */}
 
                 <div
                   style={{
@@ -627,9 +695,12 @@ function Reports() {
                     RESULT
                   </div>
 
-                  {renderResult(
-                    report
-                  )}
+
+                  {
+                    renderResult(
+                      report
+                    )
+                  }
 
                 </div>
 
@@ -639,10 +710,12 @@ function Reports() {
           )}
 
         </div>
+
       )}
 
     </div>
   );
 }
+
 
 export default Reports;

@@ -10,15 +10,16 @@ import {
   saveReport,
 } from "../services/reportService";
 
-interface AnalysisDetails {
-  operation: string;
-  column: string;
-  group_by: string | null;
-  filters: Record<string, string>;
-  result: unknown;
-}
+import type {
+  AnalysisDetails,
+} from "../types/analysis";
+
 
 function Analyst() {
+  // ==========================================================
+  // STATE
+  // ==========================================================
+
   const [datasets, setDatasets] =
     useState<Dataset[]>([]);
 
@@ -114,9 +115,13 @@ function Analyst() {
     try {
 
       setLoading(true);
+
       setError("");
+
       setAnswer("");
+
       setAnalysisDetails(null);
+
       setReportSaved(false);
 
       const response =
@@ -214,9 +219,147 @@ function Analyst() {
     );
 
     setAnswer("");
+
     setAnalysisDetails(null);
+
     setError("");
+
     setReportSaved(false);
+  }
+
+
+  // ==========================================================
+  // CHECK IF RESULT CAN BE VISUALIZED
+  // ==========================================================
+
+  function isGroupedResult(): boolean {
+
+    if (!analysisDetails) {
+      return false;
+    }
+
+    const groupedOperations = [
+      "group_sum",
+      "group_average",
+      "top_n",
+      "bottom_n",
+    ];
+
+    if (
+      !groupedOperations.includes(
+        analysisDetails.operation
+      )
+    ) {
+      return false;
+    }
+
+    return (
+      analysisDetails.result !== null &&
+      typeof analysisDetails.result === "object" &&
+      !Array.isArray(
+        analysisDetails.result
+      )
+    );
+  }
+
+
+  // ==========================================================
+  // GET GROUPED RESULT
+  // ==========================================================
+
+  function getGroupedResult(): Record<
+    string,
+    unknown
+  > {
+
+    if (
+      !analysisDetails ||
+      !analysisDetails.result ||
+      typeof analysisDetails.result !== "object" ||
+      Array.isArray(
+        analysisDetails.result
+      )
+    ) {
+      return {};
+    }
+
+    return analysisDetails.result as Record<
+      string,
+      unknown
+    >;
+  }
+
+
+  // ==========================================================
+  // GET NUMERIC CHART VALUES
+  // ==========================================================
+
+  function getChartValues(): Array<{
+    label: string;
+    value: number;
+  }> {
+
+    const groupedResult =
+      getGroupedResult();
+
+    return Object.entries(
+      groupedResult
+    )
+      .map(
+        ([label, value]) => {
+
+          const numericValue =
+            typeof value === "number"
+              ? value
+              : Number(value);
+
+          return {
+            label,
+            value: numericValue,
+          };
+        }
+      )
+      .filter(
+        item =>
+          Number.isFinite(
+            item.value
+          )
+      );
+  }
+
+
+  // ==========================================================
+  // GET MAXIMUM CHART VALUE
+  // ==========================================================
+
+  function getChartMaximum(): number {
+
+    const values =
+      getChartValues();
+
+    if (values.length === 0) {
+      return 0;
+    }
+
+    return Math.max(
+      ...values.map(
+        item => item.value
+      )
+    );
+  }
+
+
+  // ==========================================================
+  // FORMAT NUMBER
+  // ==========================================================
+
+  function formatNumber(
+    value: number
+  ): string {
+
+    return value.toLocaleString(
+      "en-IN"
+    );
   }
 
 
@@ -281,7 +424,9 @@ function Analyst() {
         </div>
 
 
-        {/* DATASET */}
+        {/* ==================================================
+            DATASET
+        ================================================== */}
 
         <div className="dataset-selector">
 
@@ -316,9 +461,11 @@ function Analyst() {
                     dataset.dataset_id
                   }
                 >
+
                   {
                     dataset.original_filename
                   }
+
                 </option>
 
               )
@@ -329,15 +476,19 @@ function Analyst() {
         </div>
 
 
-        {/* QUESTION */}
+        {/* ==================================================
+            QUESTION
+        ================================================== */}
 
         <textarea
           value={question}
+
           onChange={event =>
             setQuestion(
               event.target.value
             )
           }
+
           onKeyDown={event => {
 
             if (
@@ -352,12 +503,16 @@ function Analyst() {
             }
 
           }}
+
           placeholder="e.g. What is the total Sales?"
+
           rows={5}
         />
 
 
-        {/* FOOTER */}
+        {/* ==================================================
+            FOOTER
+        ================================================== */}
 
         <div className="question-footer">
 
@@ -368,11 +523,13 @@ function Analyst() {
           <button
             type="button"
             className="ask-button"
+
             disabled={
               !question.trim() ||
               !selectedDataset ||
               loading
             }
+
             onClick={
               handleAskQuestion
             }
@@ -440,7 +597,9 @@ function Analyst() {
           </p>
 
 
-          {/* SAVE REPORT */}
+          {/* ==================================================
+              SAVE REPORT
+          ================================================== */}
 
           <div
             style={{
@@ -454,9 +613,11 @@ function Analyst() {
             <button
               type="button"
               className="ask-button"
+
               onClick={
                 handleSaveReport
               }
+
               disabled={
                 reportSaved
               }
@@ -467,6 +628,7 @@ function Analyst() {
                 : "Save Report"}
 
             </button>
+
 
             {reportSaved && (
 
@@ -496,6 +658,10 @@ function Analyst() {
 
         <div className="analysis-details-card">
 
+          {/* ==================================================
+              HEADER
+          ================================================== */}
+
           <div className="analysis-details-header">
 
             <div className="analysis-details-icon">
@@ -517,7 +683,9 @@ function Analyst() {
           </div>
 
 
-          {/* OPERATION DETAILS */}
+          {/* ==================================================
+              OPERATION DETAILS
+          ================================================== */}
 
           <div className="analysis-details-grid">
 
@@ -528,7 +696,9 @@ function Analyst() {
               </span>
 
               <strong>
-                {analysisDetails.operation}
+                {
+                  analysisDetails.operation
+                }
               </strong>
 
             </div>
@@ -541,7 +711,10 @@ function Analyst() {
               </span>
 
               <strong>
-                {analysisDetails.column || "—"}
+                {
+                  analysisDetails.column ||
+                  "—"
+                }
               </strong>
 
             </div>
@@ -554,7 +727,10 @@ function Analyst() {
               </span>
 
               <strong>
-                {analysisDetails.group_by || "—"}
+                {
+                  analysisDetails.group_by ||
+                  "—"
+                }
               </strong>
 
             </div>
@@ -562,7 +738,9 @@ function Analyst() {
           </div>
 
 
-          {/* FILTERS */}
+          {/* ==================================================
+              FILTERS
+          ================================================== */}
 
           {Object.keys(
             analysisDetails.filters || {}
@@ -585,7 +763,9 @@ function Analyst() {
                       className="filter-badge"
                       key={key}
                     >
+
                       {key} = {value}
+
                     </span>
 
                   )
@@ -598,7 +778,9 @@ function Analyst() {
           )}
 
 
-          {/* RESULT */}
+          {/* ==================================================
+              RESULT
+          ================================================== */}
 
           <div className="analysis-result">
 
@@ -606,6 +788,10 @@ function Analyst() {
               Result
             </h4>
 
+
+            {/* =================================================
+                RESULT TABLE
+            ================================================= */}
 
             {(
 
@@ -673,7 +859,9 @@ function Analyst() {
                     ).map(
                       ([key, value]) => (
 
-                        <tr key={key}>
+                        <tr
+                          key={key}
+                        >
 
                           <td>
                             {key}
@@ -684,7 +872,9 @@ function Analyst() {
                             {typeof value ===
                             "number"
 
-                              ? value.toLocaleString()
+                              ? formatNumber(
+                                  value
+                                )
 
                               : String(
                                   value
@@ -716,6 +906,178 @@ function Analyst() {
             )}
 
           </div>
+
+
+          {/* ==================================================
+              VISUALIZATION
+          ================================================== */}
+
+          {isGroupedResult() && (
+
+            <div
+              style={{
+                marginTop: "32px",
+              }}
+            >
+
+              <div
+                style={{
+                  marginBottom: "18px",
+                }}
+              >
+
+                <p className="eyebrow">
+                  VISUALIZATION
+                </p>
+
+                <h3
+                  style={{
+                    marginTop: "4px",
+                  }}
+                >
+                  {analysisDetails.column
+                    ? `${analysisDetails.column} by ${
+                        analysisDetails.group_by ||
+                        "Group"
+                      }`
+                    : "Analysis Chart"}
+                </h3>
+
+              </div>
+
+
+              {getChartValues().length > 0 ? (
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "18px",
+                    padding: "24px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "14px",
+                  }}
+                >
+
+                  {getChartValues().map(
+                    item => {
+
+                      const maximum =
+                        getChartMaximum();
+
+                      const percentage =
+                        maximum > 0
+                          ? Math.max(
+                              4,
+                              (
+                                item.value /
+                                maximum
+                              ) * 100
+                            )
+                          : 0;
+
+                      return (
+                        <div
+                          key={item.label}
+                        >
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent:
+                                "space-between",
+                              alignItems:
+                                "center",
+                              marginBottom:
+                                "7px",
+                              gap: "16px",
+                            }}
+                          >
+
+                            <span
+                              style={{
+                                fontWeight: 600,
+                                color:
+                                  "#172033",
+                              }}
+                            >
+                              {item.label}
+                            </span>
+
+                            <span
+                              style={{
+                                fontWeight: 600,
+                                color:
+                                  "#475569",
+                              }}
+                            >
+                              {formatNumber(
+                                item.value
+                              )}
+                            </span>
+
+                          </div>
+
+
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "18px",
+                              background:
+                                "#e2e8f0",
+                              borderRadius:
+                                "999px",
+                              overflow:
+                                "hidden",
+                            }}
+                          >
+
+                            <div
+                              style={{
+                                width:
+                                  `${percentage}%`,
+                                height:
+                                  "100%",
+                                background:
+                                  "#172033",
+                                borderRadius:
+                                  "999px",
+                                transition:
+                                  "width 0.4s ease",
+                              }}
+                            />
+
+                          </div>
+
+                        </div>
+                      );
+
+                    }
+                  )}
+
+                </div>
+
+              ) : (
+
+                <div
+                  style={{
+                    padding: "20px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    color: "#64748b",
+                  }}
+                >
+                  No numeric values are available
+                  for visualization.
+                </div>
+
+              )}
+
+            </div>
+
+          )}
 
         </div>
 

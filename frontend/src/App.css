@@ -1333,3 +1333,107 @@
 .analysis-result-table th:last-child {
   text-align: right;
 }
+/* =========================================================
+   ANALYSIS VISUALIZATION
+   ========================================================= */
+
+.analysis-card {
+  background: #ffffff;
+  border: 1px solid #e5e9f0;
+  border-radius: 18px;
+  padding: 28px;
+  margin-top: 24px;
+}
+
+.analysis-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.analysis-card-header h3 {
+  margin: 6px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #172033;
+}
+
+.visualization-container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.visualization-row {
+  width: 100%;
+}
+
+.visualization-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #172033;
+}
+
+.visualization-row-header strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.visualization-row-header span {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.visualization-track {
+  width: 100%;
+  height: 20px;
+  background: #e7ebf2;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.visualization-bar {
+  height: 100%;
+  background: #172033;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.metric-visualization {
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f7f8fa;
+  border-radius: 14px;
+  padding: 30px;
+}
+
+.metric-value {
+  font-size: 42px;
+  font-weight: 800;
+  color: #172033;
+}
+
+.metric-label {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #7a8498;
+}
+
+.visualization-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.visualization-list-item {
+  padding: 14px 16px;
+  background: #f7f8fa;
+  border-radius: 10px;
+  color: #172033;
+}

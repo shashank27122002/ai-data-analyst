@@ -36,6 +36,11 @@ function Datasets() {
   const [selectedDataset, setSelectedDataset] =
     useState<Dataset | null>(null);
 
+  const [detailView, setDetailView] =
+    useState<
+      "preview" | "statistics" | null
+    >(null);
+
   const [preview, setPreview] =
     useState<DatasetPreviewResponse | null>(null);
 
@@ -107,9 +112,9 @@ function Datasets() {
   useEffect(() => {
     if (
       selectedDataset &&
+      detailView === "preview" &&
       preview &&
-      !previewLoading &&
-      !statistics
+      !previewLoading
     ) {
       previewRef.current?.scrollIntoView({
         behavior: "smooth",
@@ -118,9 +123,9 @@ function Datasets() {
     }
   }, [
     selectedDataset,
+    detailView,
     preview,
     previewLoading,
-    statistics,
   ]);
 
   // ==========================================================
@@ -130,6 +135,7 @@ function Datasets() {
   useEffect(() => {
     if (
       selectedDataset &&
+      detailView === "statistics" &&
       statistics &&
       !statisticsLoading
     ) {
@@ -140,6 +146,7 @@ function Datasets() {
     }
   }, [
     selectedDataset,
+    detailView,
     statistics,
     statisticsLoading,
   ]);
@@ -180,6 +187,7 @@ function Datasets() {
       setError("");
 
       setSelectedDataset(null);
+      setDetailView(null);
       setPreview(null);
       setStatistics(null);
 
@@ -221,6 +229,8 @@ function Datasets() {
   ) {
     try {
       setSelectedDataset(dataset);
+
+      setDetailView("preview");
 
       setPreview(null);
 
@@ -265,6 +275,8 @@ function Datasets() {
     try {
       setSelectedDataset(dataset);
 
+      setDetailView("statistics");
+
       setStatistics(null);
 
       setPreview(null);
@@ -298,7 +310,7 @@ function Datasets() {
   }
 
   // ==========================================================
-  // DELETE
+  // DELETE DATASET
   // ==========================================================
 
   async function handleDelete(
@@ -325,6 +337,7 @@ function Datasets() {
         dataset.dataset_id
       ) {
         setSelectedDataset(null);
+        setDetailView(null);
         setPreview(null);
         setStatistics(null);
       }
@@ -350,9 +363,15 @@ function Datasets() {
 
   function closeDetails() {
     setSelectedDataset(null);
+
+    setDetailView(null);
+
     setPreview(null);
+
     setStatistics(null);
+
     setPreviewLoading(false);
+
     setStatisticsLoading(false);
   }
 
@@ -605,7 +624,6 @@ function Datasets() {
                       </button>
 
                     </div>
-
                   </div>
                 </div>
               )
@@ -617,487 +635,486 @@ function Datasets() {
           PREVIEW
       ==================================================== */}
 
-      {selectedDataset && (
-        <div
-          ref={previewRef}
-          className="card"
-          style={{
-            marginTop: "32px",
-            scrollMarginTop: "30px",
-          }}
-        >
-
+      {selectedDataset &&
+        detailView === "preview" && (
           <div
+            ref={previewRef}
+            className="card"
             style={{
-              display: "flex",
-              justifyContent:
-                "space-between",
-              alignItems:
-                "center",
-              marginBottom: "20px",
-              gap: "20px",
+              marginTop: "32px",
+              scrollMarginTop: "30px",
             }}
           >
-            <div>
-              <p className="eyebrow">
-                DATASET PREVIEW
-              </p>
 
-              <h2>
-                {
-                  selectedDataset.original_filename
-                }
-              </h2>
-
-              <p>
-                Showing the first 10 rows.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={closeDetails}
-              className="secondary-button"
-            >
-              Close
-            </button>
-          </div>
-
-          {/* PREVIEW LOADING */}
-
-          {previewLoading && (
             <div
               style={{
-                padding: "30px",
-                textAlign: "center",
+                display: "flex",
+                justifyContent:
+                  "space-between",
+                alignItems:
+                  "center",
+                marginBottom: "20px",
+                gap: "20px",
               }}
             >
-              Loading preview...
-            </div>
-          )}
+              <div>
+                <p className="eyebrow">
+                  DATASET PREVIEW
+                </p>
 
-          {/* PREVIEW TABLE */}
+                <h2>
+                  {
+                    selectedDataset.original_filename
+                  }
+                </h2>
 
-          {!previewLoading &&
-            preview &&
-            preview.data.length > 0 && (
-              <div
-                style={{
-                  overflowX: "auto",
-                  border:
-                    "1px solid #e5e7eb",
-                  borderRadius: "10px",
-                }}
-              >
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse:
-                      "collapse",
-                    minWidth: "900px",
-                  }}
-                >
-                  <thead>
-                    <tr>
-                      {preview.columns.map(
-                        (column) => (
-                          <th
-                            key={column}
-                            style={{
-                              textAlign:
-                                "left",
-                              padding:
-                                "14px",
-                              background:
-                                "#f8fafc",
-                              borderBottom:
-                                "1px solid #ddd",
-                              fontWeight:
-                                700,
-                              whiteSpace:
-                                "nowrap",
-                            }}
-                          >
-                            {column}
-                          </th>
-                        )
-                      )}
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {preview.data.map(
-                      (
-                        row,
-                        rowIndex
-                      ) => (
-                        <tr
-                          key={
-                            rowIndex
-                          }
-                        >
-                          {preview.columns.map(
-                            (column) => (
-                              <td
-                                key={
-                                  column
-                                }
-                                style={{
-                                  padding:
-                                    "14px",
-                                  borderBottom:
-                                    "1px solid #eee",
-                                  whiteSpace:
-                                    "nowrap",
-                                }}
-                              >
-                                {String(
-                                  row[
-                                    column
-                                  ] ?? ""
-                                )}
-                              </td>
-                            )
-                          )}
-                        </tr>
-                      )
-                    )}
-                  </tbody>
-                </table>
+                <p>
+                  Showing the first 10 rows.
+                </p>
               </div>
-            )}
 
-          {/* EMPTY PREVIEW */}
+              <button
+                type="button"
+                onClick={closeDetails}
+                className="secondary-button"
+              >
+                Close
+              </button>
+            </div>
 
-          {!previewLoading &&
-            preview &&
-            preview.data.length === 0 && (
+            {/* PREVIEW LOADING */}
+
+            {previewLoading && (
               <div
                 style={{
                   padding: "30px",
                   textAlign: "center",
                 }}
               >
-                <h3>
-                  No preview data
-                </h3>
-
-                <p>
-                  This dataset does not contain
-                  any rows.
-                </p>
+                Loading preview...
               </div>
             )}
-        </div>
-      )}
+
+            {/* PREVIEW TABLE */}
+
+            {!previewLoading &&
+              preview &&
+              preview.data.length > 0 && (
+                <div
+                  style={{
+                    overflowX: "auto",
+                    border:
+                      "1px solid #e5e7eb",
+                    borderRadius: "10px",
+                  }}
+                >
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse:
+                        "collapse",
+                      minWidth: "900px",
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        {preview.columns.map(
+                          (column) => (
+                            <th
+                              key={column}
+                              style={{
+                                textAlign:
+                                  "left",
+                                padding:
+                                  "14px",
+                                background:
+                                  "#f8fafc",
+                                borderBottom:
+                                  "1px solid #ddd",
+                                fontWeight:
+                                  700,
+                                whiteSpace:
+                                  "nowrap",
+                              }}
+                            >
+                              {column}
+                            </th>
+                          )
+                        )}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {preview.data.map(
+                        (
+                          row,
+                          rowIndex
+                        ) => (
+                          <tr
+                            key={
+                              rowIndex
+                            }
+                          >
+                            {preview.columns.map(
+                              (column) => (
+                                <td
+                                  key={
+                                    column
+                                  }
+                                  style={{
+                                    padding:
+                                      "14px",
+                                    borderBottom:
+                                      "1px solid #eee",
+                                    whiteSpace:
+                                      "nowrap",
+                                  }}
+                                >
+                                  {String(
+                                    row[
+                                      column
+                                    ] ?? ""
+                                  )}
+                                </td>
+                              )
+                            )}
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+            {/* EMPTY PREVIEW */}
+
+            {!previewLoading &&
+              preview &&
+              preview.data.length === 0 && (
+                <div
+                  style={{
+                    padding: "30px",
+                    textAlign: "center",
+                  }}
+                >
+                  <h3>
+                    No preview data
+                  </h3>
+
+                  <p>
+                    This dataset does not contain
+                    any rows.
+                  </p>
+                </div>
+              )}
+
+          </div>
+        )}
 
       {/* ====================================================
           STATISTICS
       ==================================================== */}
 
-      {selectedDataset && (
-        <div
-          ref={statisticsRef}
-          className="card"
-          style={{
-            marginTop: "32px",
-            scrollMarginTop: "30px",
-          }}
-        >
-
+      {selectedDataset &&
+        detailView === "statistics" && (
           <div
+            ref={statisticsRef}
+            className="card"
             style={{
-              display: "flex",
-              justifyContent:
-                "space-between",
-              alignItems:
-                "center",
-              marginBottom: "24px",
-              gap: "20px",
+              marginTop: "32px",
+              scrollMarginTop: "30px",
             }}
           >
-            <div>
-              <p className="eyebrow">
-                DATASET STATISTICS
-              </p>
 
-              <h2>
-                {
-                  selectedDataset.original_filename
-                }
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              onClick={closeDetails}
-              className="secondary-button"
-            >
-              Close
-            </button>
-          </div>
-
-          {/* STATISTICS LOADING */}
-
-          {statisticsLoading && (
             <div
               style={{
-                padding: "30px",
-                textAlign: "center",
+                display: "flex",
+                justifyContent:
+                  "space-between",
+                alignItems:
+                  "center",
+                marginBottom: "24px",
+                gap: "20px",
               }}
             >
-              Loading statistics...
+              <div>
+                <p className="eyebrow">
+                  DATASET STATISTICS
+                </p>
+
+                <h2>
+                  {
+                    selectedDataset.original_filename
+                  }
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeDetails}
+                className="secondary-button"
+              >
+                Close
+              </button>
             </div>
-          )}
 
-          {/* STATISTICS */}
+            {/* STATISTICS LOADING */}
 
-          {!statisticsLoading &&
-            statistics && (
-              <>
-                {/* SUMMARY CARDS */}
+            {statisticsLoading && (
+              <div
+                style={{
+                  padding: "30px",
+                  textAlign: "center",
+                }}
+              >
+                Loading statistics...
+              </div>
+            )}
 
-                <div
-                  className="stats-grid"
-                  style={{
-                    marginBottom: "28px",
-                  }}
-                >
+            {/* STATISTICS */}
 
-                  <div className="stat-card">
+            {!statisticsLoading &&
+              statistics && (
+                <>
+                  {/* SUMMARY CARDS */}
 
-                    <span className="stat-label">
-                      Rows
-                    </span>
-
-                    <strong>
-                      {statistics.rows.toLocaleString()}
-                    </strong>
-
-                    <span className="stat-description">
-                      Total records
-                    </span>
-
-                  </div>
-
-
-                  <div className="stat-card">
-
-                    <span className="stat-label">
-                      Columns
-                    </span>
-
-                    <strong>
-                      {statistics.columns}
-                    </strong>
-
-                    <span className="stat-description">
-                      Total fields
-                    </span>
-
-                  </div>
-
-
-                  <div className="stat-card">
-
-                    <span className="stat-label">
-                      Numeric Columns
-                    </span>
-
-                    <strong>
-                      {
-                        statistics
-                          .numeric_columns
-                          .length
-                      }
-                    </strong>
-
-                    <span className="stat-description">
-                      Numeric fields
-                    </span>
-
-                  </div>
-
-                </div>
-
-
-                {/* NUMERIC COLUMNS */}
-
-                {statistics.numeric_columns.length >
-                  0 && (
                   <div
+                    className="stats-grid"
                     style={{
-                      marginBottom:
-                        "24px",
+                      marginBottom: "28px",
                     }}
                   >
 
-                    <h3>
-                      Numeric Columns
-                    </h3>
+                    <div className="stat-card">
 
-                    <div
-                      style={{
-                        display:
-                          "flex",
-                        flexWrap:
-                          "wrap",
-                        gap: "8px",
-                        marginTop:
-                          "12px",
-                      }}
-                    >
+                      <span className="stat-label">
+                        Rows
+                      </span>
 
-                      {statistics.numeric_columns.map(
-                        (column) => (
-                          <span
-                            key={
-                              column
-                            }
-                            className="filter-badge"
-                          >
-                            {column}
-                          </span>
-                        )
-                      )}
+                      <strong>
+                        {statistics.rows.toLocaleString()}
+                      </strong>
+
+                      <span className="stat-description">
+                        Total records
+                      </span>
+
+                    </div>
+
+                    <div className="stat-card">
+
+                      <span className="stat-label">
+                        Columns
+                      </span>
+
+                      <strong>
+                        {statistics.columns}
+                      </strong>
+
+                      <span className="stat-description">
+                        Total fields
+                      </span>
+
+                    </div>
+
+                    <div className="stat-card">
+
+                      <span className="stat-label">
+                        Numeric Columns
+                      </span>
+
+                      <strong>
+                        {
+                          statistics
+                            .numeric_columns
+                            .length
+                        }
+                      </strong>
+
+                      <span className="stat-description">
+                        Numeric fields
+                      </span>
 
                     </div>
 
                   </div>
-                )}
 
+                  {/* NUMERIC COLUMNS */}
 
-                {/* NUMERIC STATISTICS TABLE */}
-
-                {Object.keys(
-                  statistics.numeric_statistics
-                ).length > 0 && (
-
-                  <div
-                    style={{
-                      overflowX:
-                        "auto",
-                    }}
-                  >
-
-                    <h3
+                  {statistics.numeric_columns.length >
+                    0 && (
+                    <div
                       style={{
                         marginBottom:
-                          "16px",
+                          "24px",
                       }}
                     >
-                      Numeric Statistics
-                    </h3>
 
-                    <table
-                      className="analysis-result-table"
-                    >
+                      <h3>
+                        Numeric Columns
+                      </h3>
 
-                      <thead>
+                      <div
+                        style={{
+                          display:
+                            "flex",
+                          flexWrap:
+                            "wrap",
+                          gap: "8px",
+                          marginTop:
+                            "12px",
+                        }}
+                      >
 
-                        <tr>
-
-                          <th>
-                            Column
-                          </th>
-
-                          <th>
-                            Count
-                          </th>
-
-                          <th>
-                            Sum
-                          </th>
-
-                          <th>
-                            Average
-                          </th>
-
-                          <th>
-                            Minimum
-                          </th>
-
-                          <th>
-                            Maximum
-                          </th>
-
-                        </tr>
-
-                      </thead>
-
-                      <tbody>
-
-                        {Object.entries(
-                          statistics
-                            .numeric_statistics
-                        ).map(
-                          (
-                            [
-                              column,
-                              stat,
-                            ]
-                          ) => (
-
-                            <tr
+                        {statistics.numeric_columns.map(
+                          (column) => (
+                            <span
                               key={
                                 column
                               }
+                              className="filter-badge"
                             >
-
-                              <td>
-                                {column}
-                              </td>
-
-                              <td>
-                                {stat.count.toLocaleString()}
-                              </td>
-
-                              <td>
-                                {stat.sum.toLocaleString()}
-                              </td>
-
-                              <td>
-                                {stat.average.toLocaleString(
-                                  undefined,
-                                  {
-                                    maximumFractionDigits:
-                                      2,
-                                  }
-                                )}
-                              </td>
-
-                              <td>
-                                {stat.minimum ===
-                                null
-                                  ? "—"
-                                  : stat.minimum.toLocaleString()}
-                              </td>
-
-                              <td>
-                                {stat.maximum ===
-                                null
-                                  ? "—"
-                                  : stat.maximum.toLocaleString()}
-                              </td>
-
-                            </tr>
-
+                              {column}
+                            </span>
                           )
                         )}
 
-                      </tbody>
+                      </div>
 
-                    </table>
+                    </div>
+                  )}
 
-                  </div>
+                  {/* NUMERIC STATISTICS TABLE */}
 
-                )}
+                  {Object.keys(
+                    statistics.numeric_statistics
+                  ).length > 0 && (
 
-              </>
-            )}
+                    <div
+                      style={{
+                        overflowX:
+                          "auto",
+                      }}
+                    >
 
-        </div>
-      )}
+                      <h3
+                        style={{
+                          marginBottom:
+                            "16px",
+                        }}
+                      >
+                        Numeric Statistics
+                      </h3>
+
+                      <table
+                        className="analysis-result-table"
+                      >
+
+                        <thead>
+
+                          <tr>
+
+                            <th>
+                              Column
+                            </th>
+
+                            <th>
+                              Count
+                            </th>
+
+                            <th>
+                              Sum
+                            </th>
+
+                            <th>
+                              Average
+                            </th>
+
+                            <th>
+                              Minimum
+                            </th>
+
+                            <th>
+                              Maximum
+                            </th>
+
+                          </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                          {Object.entries(
+                            statistics
+                              .numeric_statistics
+                          ).map(
+                            (
+                              [
+                                column,
+                                stat,
+                              ]
+                            ) => (
+
+                              <tr
+                                key={
+                                  column
+                                }
+                              >
+
+                                <td>
+                                  {column}
+                                </td>
+
+                                <td>
+                                  {stat.count.toLocaleString()}
+                                </td>
+
+                                <td>
+                                  {stat.sum.toLocaleString()}
+                                </td>
+
+                                <td>
+                                  {stat.average.toLocaleString(
+                                    undefined,
+                                    {
+                                      maximumFractionDigits:
+                                        2,
+                                    }
+                                  )}
+                                </td>
+
+                                <td>
+                                  {stat.minimum ===
+                                  null
+                                    ? "—"
+                                    : stat.minimum.toLocaleString()}
+                                </td>
+
+                                <td>
+                                  {stat.maximum ===
+                                  null
+                                    ? "—"
+                                    : stat.maximum.toLocaleString()}
+                                </td>
+
+                              </tr>
+
+                            )
+                          )}
+
+                        </tbody>
+
+                      </table>
+
+                    </div>
+
+                  )}
+
+                </>
+              )}
+
+          </div>
+        )}
 
     </div>
   );

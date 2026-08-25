@@ -11,18 +11,18 @@ import {
   type Dataset,
 } from "../api/api";
 
-interface RecentQuestion {
-  question: string;
-  answer: string;
-}
+import {
+  getReports,
+} from "../services/reportService";
 
-interface AnalysisDetails {
-  operation: string;
-  column: string;
-  group_by: string | null;
-  filters: Record<string, string>;
-  result: unknown;
-}
+import type {
+  Report,
+} from "../types/report";
+
+import type {
+  AnalysisDetails,
+} from "../types/analysis";
+
 
 function Dashboard() {
 
@@ -46,7 +46,13 @@ function Dashboard() {
     useState<AnalysisDetails | null>(null);
 
   const [recentQuestions, setRecentQuestions] =
-    useState<RecentQuestion[]>([]);
+    useState<{
+      question: string;
+      answer: string;
+    }[]>([]);
+
+  const [reports, setReports] =
+    useState<Report[]>([]);
 
   const [loadingDatasets, setLoadingDatasets] =
     useState(true);
@@ -62,34 +68,41 @@ function Dashboard() {
 
 
   // ==========================================================
-  // LOAD DATASETS
+  // LOAD DATA
   // ==========================================================
 
   useEffect(() => {
-    loadDatasets();
+
+    loadDashboardData();
+
   }, []);
 
 
-  async function loadDatasets() {
+  async function loadDashboardData() {
 
     try {
 
       setLoadingDatasets(true);
+
       setError("");
 
       const response =
         await getDatasets();
 
+      const loadedDatasets =
+        response.datasets || [];
+
       setDatasets(
-        response.datasets
+        loadedDatasets
       );
 
+
       if (
-        response.datasets.length > 0
+        loadedDatasets.length > 0
       ) {
 
         setSelectedDataset(
-          response.datasets[0]
+          loadedDatasets[0]
         );
 
       } else {
@@ -98,10 +111,15 @@ function Dashboard() {
 
       }
 
+
+      setReports(
+        getReports()
+      );
+
     } catch (error) {
 
       console.error(
-        "Failed to load datasets:",
+        "Failed to load dashboard data:",
         error
       );
 
@@ -120,6 +138,13 @@ function Dashboard() {
 
 
   // ==========================================================
+  // REFRESH REPORTS
+  // ==========================================================
+
+  
+
+
+  // ==========================================================
   // UPLOAD DATASET
   // ==========================================================
 
@@ -134,16 +159,19 @@ function Dashboard() {
       return;
     }
 
+
     const fileName =
       file.name.toLowerCase();
 
+
     if (
       !fileName.endsWith(".csv") &&
-      !fileName.endsWith(".xlsx")
+      !fileName.endsWith(".xlsx") &&
+      !fileName.endsWith(".xls")
     ) {
 
       setError(
-        "Only CSV and Excel (.xlsx) files are supported."
+        "Only CSV and Excel files are supported."
       );
 
       event.target.value = "";
@@ -151,41 +179,52 @@ function Dashboard() {
       return;
     }
 
+
     try {
 
       setUploadingDataset(true);
+
       setError("");
+
       setAnswer("");
+
       setAnalysisDetails(null);
 
-      await uploadDataset(file);
 
-      /*
-       * Reload datasets after upload.
-       * This avoids depending on the exact
-       * structure of the upload response.
-       */
+      await uploadDataset(
+        file
+      );
+
 
       const response =
         await getDatasets();
 
+
+      const loadedDatasets =
+        response.datasets || [];
+
+
       setDatasets(
-        response.datasets
+        loadedDatasets
       );
 
+
       if (
-        response.datasets.length > 0
+        loadedDatasets.length > 0
       ) {
 
         /*
-         * The newly uploaded dataset should
-         * normally be the last dataset returned.
+         * The backend currently returns the
+         * datasets in creation order.
+         *
+         * We select the newest returned dataset.
          */
 
         const newestDataset =
-          response.datasets[
-            response.datasets.length - 1
+          loadedDatasets[
+            loadedDatasets.length - 1
           ];
+
 
         setSelectedDataset(
           newestDataset
@@ -241,6 +280,7 @@ function Dashboard() {
       return;
     }
 
+
     if (!selectedDataset) {
 
       setError(
@@ -250,15 +290,21 @@ function Dashboard() {
       return;
     }
 
+
     try {
 
       setAskingQuestion(true);
+
       setError("");
+
       setAnswer("");
+
       setAnalysisDetails(null);
+
 
       const currentQuestion =
         question.trim();
+
 
       const response =
         await askQuestion(
@@ -266,13 +312,16 @@ function Dashboard() {
           currentQuestion
         );
 
+
       setAnswer(
         response.answer
       );
 
+
       setAnalysisDetails(
         response.analysis ?? null
       );
+
 
       setRecentQuestions(
         previous => [
@@ -289,6 +338,7 @@ function Dashboard() {
 
         ].slice(0, 5)
       );
+
 
     } catch (error) {
 
@@ -326,13 +376,17 @@ function Dashboard() {
           datasetId
       );
 
+
     setSelectedDataset(
       dataset ?? null
     );
 
     setAnswer("");
+
     setAnalysisDetails(null);
+
     setError("");
+
   }
 
 
@@ -341,7 +395,10 @@ function Dashboard() {
   // ==========================================================
 
   function handleRecentQuestion(
-    recent: RecentQuestion
+    recent: {
+      question: string;
+      answer: string;
+    }
   ) {
 
     setQuestion(
@@ -357,7 +414,71 @@ function Dashboard() {
     );
 
     setError("");
+
   }
+
+
+  // ==========================================================
+  // DASHBOARD METRICS
+  // ==========================================================
+
+  const totalDatasets =
+    datasets.length;
+
+
+  const totalRows =
+    datasets.reduce(
+      (
+        total,
+        dataset
+      ) =>
+        total +
+        (
+          Number(
+            dataset.row_count
+          ) || 0
+        ),
+      0
+    );
+
+
+  const totalColumns =
+    datasets.reduce(
+      (
+        total,
+        dataset
+      ) =>
+        total +
+        (
+          Number(
+            dataset.column_count
+          ) || 0
+        ),
+      0
+    );
+
+
+  const totalReports =
+    reports.length;
+
+
+  // ==========================================================
+  // RECENT DATASETS
+  // ==========================================================
+
+  const recentDatasets =
+    [...datasets]
+      .reverse()
+      .slice(0, 5);
+
+
+  // ==========================================================
+  // RECENT REPORTS
+  // ==========================================================
+
+  const recentReports =
+    reports
+      .slice(0, 5);
 
 
   // ==========================================================
@@ -389,8 +510,12 @@ function Dashboard() {
         <button
           className="upload-button"
           type="button"
-          disabled={uploadingDataset}
-          onClick={openUploadPicker}
+          disabled={
+            uploadingDataset
+          }
+          onClick={
+            openUploadPicker
+          }
         >
 
           {uploadingDataset
@@ -405,7 +530,7 @@ function Dashboard() {
       <input
         id="dataset-upload"
         type="file"
-        accept=".csv,.xlsx"
+        accept=".csv,.xlsx,.xls"
         style={{
           display: "none",
         }}
@@ -450,10 +575,13 @@ function Dashboard() {
 
 
       {/* ====================================================
-          DATASET SUMMARY
+          DASHBOARD KPI CARDS
       ==================================================== */}
 
       <section className="stats-grid">
+
+
+        {/* DATASETS */}
 
         <div className="stat-card">
 
@@ -462,9 +590,11 @@ function Dashboard() {
           </span>
 
           <strong>
+
             {loadingDatasets
               ? "..."
-              : datasets.length}
+              : totalDatasets}
+
           </strong>
 
           <span className="stat-description">
@@ -474,38 +604,248 @@ function Dashboard() {
         </div>
 
 
+        {/* ROWS */}
+
         <div className="stat-card">
 
           <span className="stat-label">
-            Rows
+            Total Rows
           </span>
 
           <strong>
-            {selectedDataset?.row_count ?? 0}
+
+            {loadingDatasets
+              ? "..."
+              : totalRows.toLocaleString()}
+
           </strong>
 
           <span className="stat-description">
-            Across selected dataset
+            Across all datasets
           </span>
 
         </div>
 
 
+        {/* COLUMNS */}
+
         <div className="stat-card">
 
           <span className="stat-label">
-            Columns
+            Total Columns
           </span>
 
           <strong>
-            {selectedDataset?.column_count ?? 0}
+
+            {loadingDatasets
+              ? "..."
+              : totalColumns.toLocaleString()}
+
           </strong>
 
           <span className="stat-description">
-            Available fields
+            Across all datasets
           </span>
 
         </div>
+
+
+        {/* REPORTS */}
+
+        <div className="stat-card">
+
+          <span className="stat-label">
+            Reports
+          </span>
+
+          <strong>
+            {totalReports}
+          </strong>
+
+          <span className="stat-description">
+            Saved analyses
+          </span>
+
+        </div>
+
+      </section>
+
+
+      {/* ====================================================
+          ERROR
+      ==================================================== */}
+
+      {error && (
+
+        <div className="error-message">
+          {error}
+        </div>
+
+      )}
+
+
+      {/* ====================================================
+          RECENT DATASETS
+      ==================================================== */}
+
+      <section
+        style={{
+          marginTop: "32px",
+        }}
+      >
+
+        <div className="section-heading">
+
+          <div>
+
+            <p className="eyebrow">
+              DATASETS
+            </p>
+
+            <h2>
+              Recent datasets
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        {recentDatasets.length === 0 ? (
+
+          <div className="empty-state">
+
+            <div className="empty-icon">
+              ◫
+            </div>
+
+            <h3>
+              No datasets yet
+            </h3>
+
+            <p>
+              Upload a dataset to start
+              analyzing your data.
+            </p>
+
+          </div>
+
+        ) : (
+
+          <div
+            style={{
+              display: "grid",
+              gap: "12px",
+            }}
+          >
+
+            {recentDatasets.map(
+              dataset => (
+
+                <div
+                  key={
+                    dataset.dataset_id
+                  }
+                  className="card"
+                  style={{
+                    padding:
+                      "20px 24px",
+                  }}
+                >
+
+                  <div
+                    style={{
+                      display:
+                        "flex",
+                      justifyContent:
+                        "space-between",
+                      alignItems:
+                        "center",
+                      gap:
+                        "20px",
+                    }}
+                  >
+
+                    <div>
+
+                      <h3>
+                        {
+                          dataset.original_filename
+                        }
+                      </h3>
+
+                      <p>
+                        Dataset ID:{" "}
+                        {
+                          dataset.dataset_id
+                        }
+                      </p>
+
+                    </div>
+
+
+                    <div
+                      style={{
+                        display:
+                          "flex",
+                        gap:
+                          "24px",
+                        flexShrink:
+                          0,
+                      }}
+                    >
+
+                      <div>
+
+                        <span
+                          className="stat-label"
+                        >
+                          Rows
+                        </span>
+
+                        <strong>
+                          {
+                            Number(
+                              dataset.row_count ||
+                              0
+                            ).toLocaleString()
+                          }
+                        </strong>
+
+                      </div>
+
+
+                      <div>
+
+                        <span
+                          className="stat-label"
+                        >
+                          Columns
+                        </span>
+
+                        <strong>
+                          {
+                            Number(
+                              dataset.column_count ||
+                              0
+                            ).toLocaleString()
+                          }
+                        </strong>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              )
+            )}
+
+          </div>
+
+        )}
 
       </section>
 
@@ -575,9 +915,7 @@ function Dashboard() {
           </div>
 
 
-          {/* =================================================
-              DATASET SELECTOR
-          ================================================= */}
+          {/* DATASET SELECTOR */}
 
           {datasets.length > 0 && (
 
@@ -589,7 +927,8 @@ function Dashboard() {
 
               <select
                 value={
-                  selectedDataset?.dataset_id ?? ""
+                  selectedDataset?.dataset_id ??
+                  ""
                 }
                 onChange={event =>
                   handleDatasetChange(
@@ -628,17 +967,19 @@ function Dashboard() {
           )}
 
 
-          {/* =================================================
-              QUESTION INPUT
-          ================================================= */}
+          {/* QUESTION */}
 
           <textarea
-            value={question}
+            value={
+              question
+            }
+
             onChange={event =>
               setQuestion(
                 event.target.value
               )
             }
+
             onKeyDown={event => {
 
               if (
@@ -653,14 +994,14 @@ function Dashboard() {
               }
 
             }}
+
             placeholder="e.g. What are the top 3 products by sales?"
+
             rows={4}
           />
 
 
-          {/* =================================================
-              QUESTION FOOTER
-          ================================================= */}
+          {/* QUESTION FOOTER */}
 
           <div className="question-footer">
 
@@ -672,11 +1013,13 @@ function Dashboard() {
             <button
               className="ask-button"
               type="button"
+
               disabled={
                 !question.trim() ||
                 !selectedDataset ||
                 askingQuestion
               }
+
               onClick={
                 handleAskQuestion
               }
@@ -698,20 +1041,7 @@ function Dashboard() {
 
 
         {/* ==================================================
-            ERROR
-        ================================================== */}
-
-        {error && (
-
-          <div className="error-message">
-            {error}
-          </div>
-
-        )}
-
-
-        {/* ==================================================
-            ANSWER CARD
+            ANSWER
         ================================================== */}
 
         {answer && (
@@ -756,10 +1086,6 @@ function Dashboard() {
 
           <div className="analysis-details-card">
 
-            {/* ================================================
-                HEADER
-            ================================================= */}
-
             <div className="analysis-details-header">
 
               <div className="analysis-details-icon">
@@ -781,10 +1107,6 @@ function Dashboard() {
             </div>
 
 
-            {/* ================================================
-                OPERATION / COLUMN / GROUP BY
-            ================================================= */}
-
             <div className="analysis-details-grid">
 
               <div className="analysis-detail-item">
@@ -794,7 +1116,9 @@ function Dashboard() {
                 </span>
 
                 <strong>
-                  {analysisDetails.operation}
+                  {
+                    analysisDetails.operation
+                  }
                 </strong>
 
               </div>
@@ -807,7 +1131,10 @@ function Dashboard() {
                 </span>
 
                 <strong>
-                  {analysisDetails.column || "—"}
+                  {
+                    analysisDetails.column ||
+                    "—"
+                  }
                 </strong>
 
               </div>
@@ -820,7 +1147,10 @@ function Dashboard() {
                 </span>
 
                 <strong>
-                  {analysisDetails.group_by || "—"}
+                  {
+                    analysisDetails.group_by ||
+                    "—"
+                  }
                 </strong>
 
               </div>
@@ -828,9 +1158,7 @@ function Dashboard() {
             </div>
 
 
-            {/* ================================================
-                FILTERS
-            ================================================= */}
+            {/* FILTERS */}
 
             {Object.keys(
               analysisDetails.filters || {}
@@ -868,9 +1196,7 @@ function Dashboard() {
             )}
 
 
-            {/* ================================================
-                RESULT
-            ================================================= */}
+            {/* RESULT */}
 
             <div className="analysis-result">
 
@@ -878,10 +1204,6 @@ function Dashboard() {
                 Result
               </h4>
 
-
-              {/* ==============================================
-                  GROUPED RESULT TABLE
-              =============================================== */}
 
               {(
                 analysisDetails.operation ===
@@ -944,7 +1266,9 @@ function Dashboard() {
                       ).map(
                         ([key, value]) => (
 
-                          <tr key={key}>
+                          <tr
+                            key={key}
+                          >
 
                             <td>
                               {key}
@@ -976,10 +1300,6 @@ function Dashboard() {
 
               ) : (
 
-                /* ============================================
-                   NORMAL RESULT
-                ============================================= */
-
                 <pre>
                   {JSON.stringify(
                     analysisDetails.result,
@@ -991,6 +1311,136 @@ function Dashboard() {
               )}
 
             </div>
+
+          </div>
+
+        )}
+
+      </section>
+
+
+      {/* ====================================================
+          RECENT REPORTS
+      ==================================================== */}
+
+      <section
+        style={{
+          marginTop:
+            "40px",
+        }}
+      >
+
+        <div className="section-heading">
+
+          <div>
+
+            <p className="eyebrow">
+              REPORTS
+            </p>
+
+            <h2>
+              Recent reports
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        {recentReports.length === 0 ? (
+
+          <div className="empty-state">
+
+            <div className="empty-icon">
+              ▤
+            </div>
+
+            <h3>
+              No saved reports
+            </h3>
+
+            <p>
+              Save an analysis from the
+              Analyst page to see it here.
+            </p>
+
+          </div>
+
+        ) : (
+
+          <div
+            style={{
+              display:
+                "grid",
+              gap:
+                "12px",
+            }}
+          >
+
+            {recentReports.map(
+              report => (
+
+                <div
+                  key={
+                    report.id
+                  }
+                  className="card"
+                  style={{
+                    padding:
+                      "20px 24px",
+                  }}
+                >
+
+                  <div>
+
+                    <p
+                      style={{
+                        fontWeight:
+                          600,
+                        marginBottom:
+                          "6px",
+                      }}
+                    >
+                      {
+                        report.question
+                      }
+                    </p>
+
+                    <p
+                      style={{
+                        marginBottom:
+                          "6px",
+                      }}
+                    >
+                      {
+                        report.answer
+                      }
+                    </p>
+
+                    <span
+                      style={{
+                        fontSize:
+                          "13px",
+                        color:
+                          "#64748b",
+                      }}
+                    >
+                      {
+                        report.datasetName
+                      }
+                      {" · "}
+                      {
+                        report.operation ||
+                        "analysis"
+                      }
+                    </span>
+
+                  </div>
+
+                </div>
+
+              )
+            )}
 
           </div>
 
@@ -1046,12 +1496,16 @@ function Dashboard() {
           <div className="recent-questions">
 
             {recentQuestions.map(
-              (recent, index) => (
+              (
+                recent,
+                index
+              ) => (
 
                 <button
                   key={`${recent.question}-${index}`}
                   type="button"
                   className="recent-question-card"
+
                   onClick={() =>
                     handleRecentQuestion(
                       recent
@@ -1067,11 +1521,15 @@ function Dashboard() {
                   <div className="recent-question-content">
 
                     <h3>
-                      {recent.question}
+                      {
+                        recent.question
+                      }
                     </h3>
 
                     <p>
-                      {recent.answer}
+                      {
+                        recent.answer
+                      }
                     </p>
 
                   </div>
