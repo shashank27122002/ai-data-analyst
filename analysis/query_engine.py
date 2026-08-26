@@ -326,3 +326,44 @@ def percentage(
         .mul(100)
         .tolist()
     )
+    # ============================================================
+# GROUP PERCENTAGE
+# ============================================================
+
+def group_percentage(
+    dataframe: pd.DataFrame,
+    group_column: str,
+    value_column: str
+):
+    """
+    Calculate each group's percentage contribution
+    to the total value.
+    """
+
+    if dataframe.empty:
+        return {}
+
+    grouped = (
+        dataframe
+        .groupby(group_column)[value_column]
+        .sum()
+    )
+
+    total_value = grouped.sum()
+
+    if total_value == 0:
+        return {
+            str(key): 0
+            for key in grouped.index
+        }
+
+    result = (
+        grouped
+        .div(total_value)
+        .mul(100)
+        .sort_values(
+            ascending=False
+        )
+    )
+
+    return result.to_dict()
