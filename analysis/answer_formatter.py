@@ -20,7 +20,6 @@ def _format_filter_phrase(filters: dict) -> str:
     """
 
     if not filters:
-
         return ""
 
     parts = []
@@ -76,11 +75,9 @@ def _join_values(values: list) -> str:
     ]
 
     if not values:
-
         return ""
 
     if len(values) == 1:
-
         return values[0]
 
     if len(values) == 2:
@@ -130,6 +127,31 @@ def _format_number(value):
     ):
 
         return f"{value:,}"
+
+    return str(value)
+
+
+def _format_percentage(value):
+    """
+    Format percentage values to exactly
+    two decimal places.
+
+    Examples:
+
+        54.5189504 -> 54.52%
+        25.3644314 -> 25.36%
+        13.7       -> 13.70%
+        6.41399    -> 6.41%
+    """
+
+    value = _convert_value(value)
+
+    if isinstance(
+        value,
+        (int, float)
+    ):
+
+        return f"{value:.2f}%"
 
     return str(value)
 
@@ -351,10 +373,6 @@ def format_analysis_result(
                 f"{filter_phrase}."
             )
 
-        # ----------------------------------------------------
-        # Products
-        # ----------------------------------------------------
-
         if column == "Product":
 
             return (
@@ -362,10 +380,6 @@ def format_analysis_result(
                 f"{filter_phrase} are "
                 f"{value_text}."
             )
-
-        # ----------------------------------------------------
-        # Customers
-        # ----------------------------------------------------
 
         if column == "Customer":
 
@@ -375,10 +389,6 @@ def format_analysis_result(
                 f"{value_text}."
             )
 
-        # ----------------------------------------------------
-        # Categories
-        # ----------------------------------------------------
-
         if column == "Category":
 
             return (
@@ -386,10 +396,6 @@ def format_analysis_result(
                 f"{filter_phrase} are "
                 f"{value_text}."
             )
-
-        # ----------------------------------------------------
-        # Regions
-        # ----------------------------------------------------
 
         if column == "Region":
 
@@ -467,6 +473,48 @@ def format_analysis_result(
         return (
             f"Average {column.lower()} by "
             f"{group_by}:\n"
+            + "\n".join(lines)
+        )
+
+    # ========================================================
+    # GROUP PERCENTAGE
+    # ========================================================
+
+    if operation == "group_percentage":
+
+        if not isinstance(
+            result,
+            dict
+        ):
+
+            return str(result)
+
+        lines = []
+
+        for key, value in result.items():
+
+            value = _convert_value(
+                value
+            )
+
+            lines.append(
+                f"{key}: "
+                f"{_format_percentage(value)}"
+            )
+
+        if not lines:
+
+            return (
+                f"No percentage results "
+                f"were found"
+                f"{filter_phrase}."
+            )
+
+        return (
+            f"Percentage of "
+            f"{column.lower()} by "
+            f"{group_by}"
+            f"{filter_phrase}:\n"
             + "\n".join(lines)
         )
 

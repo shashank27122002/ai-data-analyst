@@ -241,6 +241,7 @@ function Analyst() {
     const groupedOperations = [
       "group_sum",
       "group_average",
+      "group_percentage",
       "top_n",
       "bottom_n",
     ];
@@ -360,6 +361,24 @@ function Analyst() {
     return value.toLocaleString(
       "en-IN"
     );
+  }
+
+
+  // ==========================================================
+  // FORMAT PERCENTAGE
+  // ==========================================================
+
+  function formatPercentage(
+    value: number
+  ): string {
+
+    return `${value.toLocaleString(
+      "en-IN",
+      {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }
+    )}%`;
   }
 
 
@@ -794,12 +813,14 @@ function Analyst() {
             ================================================= */}
 
             {(
-
               analysisDetails.operation ===
                 "group_sum" ||
 
               analysisDetails.operation ===
                 "group_average" ||
+
+              analysisDetails.operation ===
+                "group_percentage" ||
 
               analysisDetails.operation ===
                 "top_n" ||
@@ -839,8 +860,11 @@ function Analyst() {
 
                       <th>
                         {
-                          analysisDetails.column ||
-                          "Value"
+                          analysisDetails.operation ===
+                          "group_percentage"
+                            ? "Percentage"
+                            : analysisDetails.column ||
+                              "Value"
                         }
                       </th>
 
@@ -872,9 +896,14 @@ function Analyst() {
                             {typeof value ===
                             "number"
 
-                              ? formatNumber(
-                                  value
-                                )
+                              ? analysisDetails.operation ===
+                                "group_percentage"
+                                ? formatPercentage(
+                                    value
+                                  )
+                                : formatNumber(
+                                    value
+                                  )
 
                               : String(
                                   value
@@ -935,12 +964,22 @@ function Analyst() {
                     marginTop: "4px",
                   }}
                 >
-                  {analysisDetails.column
-                    ? `${analysisDetails.column} by ${
+
+                  {analysisDetails.operation ===
+                  "group_percentage"
+                    ? `${analysisDetails.column || "Value"} Percentage by ${
                         analysisDetails.group_by ||
                         "Group"
                       }`
-                    : "Analysis Chart"}
+
+                    : analysisDetails.column
+                      ? `${analysisDetails.column} by ${
+                          analysisDetails.group_by ||
+                          "Group"
+                        }`
+
+                      : "Analysis Chart"}
+
                 </h3>
 
               </div>
@@ -967,15 +1006,26 @@ function Analyst() {
                         getChartMaximum();
 
                       const percentage =
-                        maximum > 0
-                          ? Math.max(
-                              4,
-                              (
-                                item.value /
-                                maximum
-                              ) * 100
+                        analysisDetails.operation ===
+                        "group_percentage"
+
+                          ? Math.min(
+                              Math.max(
+                                item.value,
+                                4
+                              ),
+                              100
                             )
-                          : 0;
+
+                          : maximum > 0
+                            ? Math.max(
+                                4,
+                                (
+                                  item.value /
+                                  maximum
+                                ) * 100
+                              )
+                            : 0;
 
                       return (
                         <div
@@ -1012,9 +1062,16 @@ function Analyst() {
                                   "#475569",
                               }}
                             >
-                              {formatNumber(
-                                item.value
-                              )}
+
+                              {analysisDetails.operation ===
+                              "group_percentage"
+                                ? formatPercentage(
+                                    item.value
+                                  )
+                                : formatNumber(
+                                    item.value
+                                  )}
+
                             </span>
 
                           </div>

@@ -12,6 +12,7 @@ from analysis.query_engine import (
     distinct,
     group_sum,
     group_average,
+    group_percentage,
     highest_by,
     lowest_by,
     top_n,
@@ -612,6 +613,46 @@ def execute_analysis_plan(
         )
 
         result = result.to_dict()
+
+        return {
+
+            "success":
+                True,
+
+            "operation":
+                operation,
+
+            "column":
+                column,
+
+            "group_by":
+                group_by,
+
+            "filters":
+                filters,
+
+            "result":
+                result
+        }
+
+    # ========================================================
+    # GROUP PERCENTAGE
+    # ========================================================
+
+    if operation == "group_percentage":
+
+        if group_by is None:
+
+            raise ValueError(
+                "group_percentage requires "
+                "a group_by column."
+            )
+
+        result = group_percentage(
+            filtered_dataframe,
+            group_by,
+            column
+        )
 
         return {
 

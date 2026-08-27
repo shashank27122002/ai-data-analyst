@@ -83,6 +83,7 @@ The allowed operations are:
 - distinct
 - group_sum
 - group_average
+- group_percentage
 - top_n
 - bottom_n
 
@@ -516,6 +517,96 @@ Other phrases that indicate grouping include:
 
 
 ============================================================
+GROUP PERCENTAGE
+============================================================
+
+Use "group_percentage" when the user asks for the
+percentage contribution or share of a numeric value
+for each group.
+
+Examples:
+
+Question:
+What percentage of sales comes from each region?
+
+Output:
+
+{
+    "operation": "group_percentage",
+    "column": "Sales",
+    "group_by": "Region",
+    "filters": {}
+}
+
+
+Question:
+What percentage of sales does each product contribute?
+
+Output:
+
+{
+    "operation": "group_percentage",
+    "column": "Sales",
+    "group_by": "Product",
+    "filters": {}
+}
+
+
+Question:
+What is the percentage contribution of each category?
+
+Output:
+
+{
+    "operation": "group_percentage",
+    "column": "Sales",
+    "group_by": "Category",
+    "filters": {}
+}
+
+
+Question:
+What percentage of sales does each product contribute
+in South?
+
+Output:
+
+{
+    "operation": "group_percentage",
+    "column": "Sales",
+    "group_by": "Product",
+    "filters": {
+        "Region": "South"
+    }
+}
+
+
+Use "group_percentage" for phrases such as:
+
+- percentage by region
+- percentage of sales by region
+- contribution by region
+- percentage contribution by region
+- share of sales by region
+- sales percentage by region
+- percentage for each region
+- contribution of each region
+- percentage by product
+- share of sales by product
+- percentage by category
+- contribution by category
+
+
+IMPORTANT:
+
+For group_percentage:
+
+- column = numeric metric
+- group_by = category/group column
+- filters = explicit filters
+
+
+============================================================
 FILTERED AVERAGE
 ============================================================
 
@@ -675,6 +766,24 @@ Output:
 }
 
 
+Example:
+
+Question:
+What percentage of sales does each product contribute
+in South?
+
+Output:
+
+{
+    "operation": "group_percentage",
+    "column": "Sales",
+    "group_by": "Product",
+    "filters": {
+        "Region": "South"
+    }
+}
+
+
 ============================================================
 NATURAL LANGUAGE
 ============================================================
@@ -735,6 +844,30 @@ means:
     "column": "Sales",
     "group_by": "Product",
     "n": 3,
+    "filters": {}
+}
+
+
+"Show me the percentage of sales by region"
+
+means:
+
+{
+    "operation": "group_percentage",
+    "column": "Sales",
+    "group_by": "Region",
+    "filters": {}
+}
+
+
+"Show me each region's share of sales"
+
+means:
+
+{
+    "operation": "group_percentage",
+    "column": "Sales",
+    "group_by": "Region",
     "filters": {}
 }
 
@@ -872,6 +1005,48 @@ Output:
     "column": "Profit",
     "group_by": "Region",
     "filters": {}
+}
+
+
+Question:
+What percentage of sales comes from each region?
+
+Output:
+
+{
+    "operation": "group_percentage",
+    "column": "Sales",
+    "group_by": "Region",
+    "filters": {}
+}
+
+
+Question:
+What is the percentage contribution of each product?
+
+Output:
+
+{
+    "operation": "group_percentage",
+    "column": "Sales",
+    "group_by": "Product",
+    "filters": {}
+}
+
+
+Question:
+What percentage of sales does each product contribute
+in South?
+
+Output:
+
+{
+    "operation": "group_percentage",
+    "column": "Sales",
+    "group_by": "Product",
+    "filters": {
+        "Region": "South"
+    }
 }
 
 
@@ -1027,18 +1202,26 @@ FINAL RULES
 16. If the question asks for BOTTOM N groups,
     use bottom_n.
 
-17. For top_n and bottom_n:
+17. If the question asks for percentage contribution
+    BY a group, use group_percentage.
+
+18. For group_percentage:
+    - column = numeric metric
+    - group_by = grouping column
+    - filters = explicit filters
+
+19. For top_n and bottom_n:
     - column = numeric metric
     - group_by = entity being ranked
     - n = requested number
     - default n = 5 if no number is specified
 
-18. group_by must be null unless the user explicitly
+20. group_by must be null unless the user explicitly
     requests a grouped or ranked result.
 
-19. filters must always be a JSON object.
+21. filters must always be a JSON object.
 
-20. Do NOT use count when the user asks "which"
+22. Do NOT use count when the user asks "which"
     or "what" values.
 """
 
@@ -1183,6 +1366,7 @@ Return ONLY the JSON analysis plan.
         "distinct",
         "group_sum",
         "group_average",
+        "group_percentage",
         "top_n",
         "bottom_n"
     }
@@ -1296,6 +1480,19 @@ Return ONLY the JSON analysis plan.
 
             raise ValueError(
                 f"{operation} requires "
+                "a group_by column."
+            )
+
+    # ========================================================
+    # VALIDATE GROUP PERCENTAGE
+    # ========================================================
+
+    if operation == "group_percentage":
+
+        if group_by is None:
+
+            raise ValueError(
+                "group_percentage requires "
                 "a group_by column."
             )
 
