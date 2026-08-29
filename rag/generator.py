@@ -110,7 +110,7 @@ ANSWER
             }
         ],
         temperature=0,
-        reasoning_format="hidden"
+        
     )
 
     # ========================================================
