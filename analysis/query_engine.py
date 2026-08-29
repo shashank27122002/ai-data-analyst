@@ -49,6 +49,38 @@ def count(
 
 
 # ============================================================
+# GROUP COUNT
+# ============================================================
+
+def group_count(
+    dataframe: pd.DataFrame,
+    group_column: str
+):
+    """
+    Count the number of records in each group.
+
+    Example:
+
+        How many sales records are there
+        for each product?
+    """
+
+    if dataframe.empty:
+        return {}
+
+    result = (
+        dataframe
+        .groupby(group_column)
+        .size()
+        .sort_values(
+            ascending=False
+        )
+    )
+
+    return result.to_dict()
+
+
+# ============================================================
 # MINIMUM
 # ============================================================
 
@@ -118,30 +150,27 @@ def highest_by(
     group_column: str
 ):
     """
-    Return the row containing the highest value.
+    Return the group containing the highest
+    total value.
     """
 
     if dataframe.empty:
-
         return None
 
-    index = dataframe[
-        value_column
-    ].idxmax()
+    grouped = (
+        dataframe
+        .groupby(group_column)[value_column]
+        .sum()
+    )
+
+    if grouped.empty:
+        return None
+
+    index = grouped.idxmax()
 
     return {
-
-        group_column:
-            dataframe.loc[
-                index,
-                group_column
-            ],
-
-        value_column:
-            dataframe.loc[
-                index,
-                value_column
-            ]
+        group_column: index,
+        value_column: grouped.loc[index]
     }
 
 
@@ -155,30 +184,27 @@ def lowest_by(
     group_column: str
 ):
     """
-    Return the row containing the lowest value.
+    Return the group containing the lowest
+    total value.
     """
 
     if dataframe.empty:
-
         return None
 
-    index = dataframe[
-        value_column
-    ].idxmin()
+    grouped = (
+        dataframe
+        .groupby(group_column)[value_column]
+        .sum()
+    )
+
+    if grouped.empty:
+        return None
+
+    index = grouped.idxmin()
 
     return {
-
-        group_column:
-            dataframe.loc[
-                index,
-                group_column
-            ],
-
-        value_column:
-            dataframe.loc[
-                index,
-                value_column
-            ]
+        group_column: index,
+        value_column: grouped.loc[index]
     }
 
 
@@ -222,11 +248,9 @@ def top_n(
     """
 
     if dataframe.empty:
-
         return {}
 
     if n < 1:
-
         raise ValueError(
             "N must be at least 1."
         )
@@ -264,11 +288,9 @@ def bottom_n(
     """
 
     if dataframe.empty:
-
         return {}
 
     if n < 1:
-
         raise ValueError(
             "N must be at least 1."
         )
@@ -304,7 +326,6 @@ def percentage(
     """
 
     if dataframe.empty:
-
         return []
 
     total_value = (
@@ -312,7 +333,6 @@ def percentage(
     )
 
     if total_value == 0:
-
         return [
             0
             for _ in range(
@@ -326,7 +346,9 @@ def percentage(
         .mul(100)
         .tolist()
     )
-    # ============================================================
+
+
+# ============================================================
 # GROUP PERCENTAGE
 # ============================================================
 
@@ -338,6 +360,10 @@ def group_percentage(
     """
     Calculate each group's percentage contribution
     to the total value.
+
+    Example:
+
+        What percentage of sales comes from each region?
     """
 
     if dataframe.empty:

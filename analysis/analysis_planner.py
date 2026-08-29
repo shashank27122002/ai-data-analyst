@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 from dotenv import load_dotenv
 from groq import Groq
@@ -83,6 +84,7 @@ The allowed operations are:
 - distinct
 - group_sum
 - group_average
+- group_count
 - group_percentage
 - top_n
 - bottom_n
@@ -312,6 +314,85 @@ DISTINCT / LIST QUESTIONS
 Use "distinct" when the user asks WHICH or WHAT
 values exist after applying one or more filters.
 
+Also use "distinct" when the user asks HOW MANY
+DIFFERENT, UNIQUE, or DISTINCT values exist.
+
+IMPORTANT:
+
+The words "different", "unique", and "distinct"
+mean the user wants DISTINCT VALUES, even when
+the question starts with "How many".
+
+Examples:
+
+Question:
+How many different products are there?
+
+Output:
+
+{
+    "operation": "distinct",
+    "column": "Product",
+    "group_by": null,
+    "filters": {}
+}
+
+
+Question:
+How many unique customers are there?
+
+Output:
+
+{
+    "operation": "distinct",
+    "column": "Customer",
+    "group_by": null,
+    "filters": {}
+}
+
+
+Question:
+How many distinct regions are there?
+
+Output:
+
+{
+    "operation": "distinct",
+    "column": "Region",
+    "group_by": null,
+    "filters": {}
+}
+
+
+Question:
+How many different products are there in South?
+
+Output:
+
+{
+    "operation": "distinct",
+    "column": "Product",
+    "group_by": null,
+    "filters": {
+        "Region": "South"
+    }
+}
+
+
+Do NOT use "count" for questions containing
+"different", "unique", or "distinct" when the
+question asks for the number of unique values.
+
+Examples:
+
+- How many different products?
+- How many unique customers?
+- How many distinct regions?
+- Number of different products
+- Number of unique customers
+
+All of these MUST use "distinct".
+
 Examples:
 
 Question:
@@ -437,7 +518,16 @@ COUNT RULES
 ============================================================
 
 Use "count" when the user asks HOW MANY
-records, orders, customers, etc. exist.
+records, orders, or rows exist.
+
+IMPORTANT:
+
+Do NOT use "count" when the question contains
+"different", "unique", or "distinct".
+
+"How many" alone means count.
+
+"How many different/unique/distinct" means distinct.
 
 Example:
 
@@ -514,6 +604,66 @@ Other phrases that indicate grouping include:
 - by
 - for each
 - per
+
+
+============================================================
+GROUP COUNT
+============================================================
+
+Use "group_count" when the user asks HOW MANY
+records, orders, customers, products, etc. exist
+broken down BY a group.
+
+Examples:
+
+Question:
+How many sales records are there for each product?
+
+Output:
+
+{
+    "operation": "group_count",
+    "column": "Order_ID",
+    "group_by": "Product",
+    "filters": {}
+}
+
+
+Question:
+How many sales records are there for each product
+in the South region?
+
+Output:
+
+{
+    "operation": "group_count",
+    "column": "Order_ID",
+    "group_by": "Product",
+    "filters": {
+        "Region": "South"
+    }
+}
+
+
+Question:
+How many orders are there for each region?
+
+Output:
+
+{
+    "operation": "group_count",
+    "column": "Order_ID",
+    "group_by": "Region",
+    "filters": {}
+}
+
+
+IMPORTANT:
+
+Use "count" when the user asks for ONE overall count.
+
+Use "group_count" when the user asks for the count
+broken down BY a group.
 
 
 ============================================================
@@ -1223,6 +1373,10 @@ FINAL RULES
 
 22. Do NOT use count when the user asks "which"
     or "what" values.
+
+23. If the question asks "how many different",
+    "how many unique", or "how many distinct"
+    values exist, use "distinct", not "count".
 """
 
     # ========================================================
@@ -1269,6 +1423,8 @@ Return ONLY the JSON analysis plan.
             }
         ],
         temperature=0,
+        max_completion_tokens=512,
+        reasoning_effort="none",
         reasoning_format="hidden",
         response_format={
             "type": "json_object"
@@ -1328,6 +1484,36 @@ Return ONLY the JSON analysis plan.
         ) from error
 
     # ========================================================
+    # DETERMINISTIC DISTINCT SAFETY RULE
+    # ========================================================
+    # "How many different/unique/distinct X" asks for the
+    # number of unique values in X, not the number of rows.
+    # Apply this correction after the LLM response so the
+    # planner remains reliable even if the model selects count.
+    normalized_question = question.lower()
+
+    distinct_count_patterns = [
+        r"\\bhow many\\s+(?:different|unique|distinct)\\b",
+        r"\\bnumber of\\s+(?:different|unique|distinct)\\b",
+        r"\\bcount of\\s+(?:different|unique|distinct)\\b",
+    ]
+
+    if (
+        any(
+            re.search(pattern, normalized_question)
+            for pattern in distinct_count_patterns
+        )
+        and plan.get("operation") in {"count", "group_count"}
+    ):
+        plan["operation"] = "distinct"
+        plan["group_by"] = None
+
+        # Keep the column selected by the model when it is valid.
+        # For the common "how many different products" case this
+        # produces distinct(Product), while preserving any filters.
+        plan.pop("n", None)
+
+    # ========================================================
     # VALIDATE REQUIRED KEYS
     # ========================================================
 
@@ -1366,6 +1552,7 @@ Return ONLY the JSON analysis plan.
         "distinct",
         "group_sum",
         "group_average",
+        "group_count",
         "group_percentage",
         "top_n",
         "bottom_n"

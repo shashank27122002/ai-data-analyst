@@ -7,6 +7,7 @@ from analysis.query_engine import (
     average,
     median,
     count,
+    group_count,
     minimum,
     maximum,
     distinct,
@@ -162,8 +163,6 @@ def execute_analysis_plan(
             raise ValueError(
                 "N must be at least 1."
             )
-
-        # Prevent unnecessarily large requests
 
         if n > 100:
 
@@ -352,6 +351,45 @@ def execute_analysis_plan(
 
         result = count(
             filtered_dataframe
+        )
+
+        return {
+
+            "success":
+                True,
+
+            "operation":
+                operation,
+
+            "column":
+                column,
+
+            "group_by":
+                group_by,
+
+            "filters":
+                filters,
+
+            "result":
+                result
+        }
+
+    # ========================================================
+    # GROUP COUNT
+    # ========================================================
+
+    if operation == "group_count":
+
+        if group_by is None:
+
+            raise ValueError(
+                "group_count requires "
+                "a group_by column."
+            )
+
+        result = group_count(
+            filtered_dataframe,
+            group_by
         )
 
         return {

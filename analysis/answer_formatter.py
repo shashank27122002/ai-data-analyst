@@ -475,6 +475,45 @@ def format_analysis_result(
             f"{group_by}:\n"
             + "\n".join(lines)
         )
+        # ========================================================
+    # GROUP COUNT
+    # ========================================================
+
+    if operation == "group_count":
+
+        if not isinstance(
+            result,
+            dict
+        ):
+
+            return str(result)
+
+        lines = []
+
+        for key, value in result.items():
+
+            value = _convert_value(
+                value
+            )
+
+            lines.append(
+                f"{key}: "
+                f"{_format_number(value)}"
+            )
+
+        if not lines:
+
+            return (
+                f"No records found"
+                f"{filter_phrase}."
+            )
+
+        return (
+            f"Count of {column.lower()} by "
+            f"{group_by}"
+            f"{filter_phrase}:\n"
+            + "\n".join(lines)
+        )
 
     # ========================================================
     # GROUP PERCENTAGE

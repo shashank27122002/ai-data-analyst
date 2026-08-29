@@ -16,6 +16,7 @@ import type {
 
 
 function Analyst() {
+
   // ==========================================================
   // STATE
   // ==========================================================
@@ -58,7 +59,9 @@ function Analyst() {
 
 
   async function loadDatasets() {
+
     try {
+
       setLoadingDatasets(true);
       setError("");
 
@@ -70,11 +73,14 @@ function Analyst() {
       );
 
       if (
+        response.datasets &&
         response.datasets.length > 0
       ) {
+
         setSelectedDataset(
           response.datasets[0]
         );
+
       }
 
     } catch (err) {
@@ -239,11 +245,19 @@ function Analyst() {
     }
 
     const groupedOperations = [
+
       "group_sum",
+
       "group_average",
+
+      "group_count",
+
       "group_percentage",
+
       "top_n",
+
       "bottom_n",
+
     ];
 
     if (
@@ -251,15 +265,22 @@ function Analyst() {
         analysisDetails.operation
       )
     ) {
+
       return false;
+
     }
 
     return (
+
       analysisDetails.result !== null &&
-      typeof analysisDetails.result === "object" &&
+
+      typeof analysisDetails.result ===
+        "object" &&
+
       !Array.isArray(
         analysisDetails.result
       )
+
     );
   }
 
@@ -274,14 +295,22 @@ function Analyst() {
   > {
 
     if (
+
       !analysisDetails ||
+
       !analysisDetails.result ||
-      typeof analysisDetails.result !== "object" ||
+
+      typeof analysisDetails.result !==
+        "object" ||
+
       Array.isArray(
         analysisDetails.result
       )
+
     ) {
+
       return {};
+
     }
 
     return analysisDetails.result as Record<
@@ -306,6 +335,7 @@ function Analyst() {
     return Object.entries(
       groupedResult
     )
+
       .map(
         ([label, value]) => {
 
@@ -318,8 +348,10 @@ function Analyst() {
             label,
             value: numericValue,
           };
+
         }
       )
+
       .filter(
         item =>
           Number.isFinite(
@@ -383,11 +415,197 @@ function Analyst() {
 
 
   // ==========================================================
+  // GET VISUALIZATION TITLE
+  // ==========================================================
+
+  function getVisualizationTitle(): string {
+
+    if (!analysisDetails) {
+      return "Analysis Chart";
+    }
+
+    const operation =
+      analysisDetails.operation;
+
+    const group =
+      analysisDetails.group_by ||
+      "Group";
+
+    const column =
+      analysisDetails.column ||
+      "Value";
+
+
+    // --------------------------------------------------------
+    // GROUP COUNT
+    // --------------------------------------------------------
+
+    if (
+      operation === "group_count"
+    ) {
+
+      return `Count by ${group}`;
+
+    }
+
+
+    // --------------------------------------------------------
+    // GROUP PERCENTAGE
+    // --------------------------------------------------------
+
+    if (
+      operation ===
+      "group_percentage"
+    ) {
+
+      return `Percentage by ${group}`;
+
+    }
+
+
+    // --------------------------------------------------------
+    // GROUP SUM
+    // --------------------------------------------------------
+
+    if (
+      operation === "group_sum"
+    ) {
+
+      return `${column} by ${group}`;
+
+    }
+
+
+    // --------------------------------------------------------
+    // GROUP AVERAGE
+    // --------------------------------------------------------
+
+    if (
+      operation ===
+      "group_average"
+    ) {
+
+      return `Average ${column} by ${group}`;
+
+    }
+
+
+    // --------------------------------------------------------
+    // TOP N
+    // --------------------------------------------------------
+
+    if (
+      operation === "top_n"
+    ) {
+
+      return `Top ${group} by ${column}`;
+
+    }
+
+
+    // --------------------------------------------------------
+    // BOTTOM N
+    // --------------------------------------------------------
+
+    if (
+      operation === "bottom_n"
+    ) {
+
+      return `Bottom ${group} by ${column}`;
+
+    }
+
+
+    return `${column} by ${group}`;
+  }
+
+
+  // ==========================================================
+  // GET RESULT TABLE VALUE LABEL
+  // ==========================================================
+
+  function getResultValueLabel(): string {
+
+    if (!analysisDetails) {
+      return "Value";
+    }
+
+    if (
+      analysisDetails.operation ===
+      "group_count"
+    ) {
+
+      return "Count";
+
+    }
+
+    if (
+      analysisDetails.operation ===
+      "group_percentage"
+    ) {
+
+      return "Percentage";
+
+    }
+
+    return (
+      analysisDetails.column ||
+      "Value"
+    );
+  }
+
+
+  // ==========================================================
+  // CHECK IF RESULT IS TABLE DATA
+  // ==========================================================
+
+  function isTableResult(): boolean {
+
+    if (!analysisDetails) {
+      return false;
+    }
+
+    const tableOperations = [
+
+      "group_sum",
+
+      "group_average",
+
+      "group_count",
+
+      "group_percentage",
+
+      "top_n",
+
+      "bottom_n",
+
+    ];
+
+    return (
+      tableOperations.includes(
+        analysisDetails.operation
+      ) &&
+
+      analysisDetails.result !== null &&
+
+      typeof analysisDetails.result ===
+        "object" &&
+
+      !Array.isArray(
+        analysisDetails.result
+      )
+    );
+  }
+
+
+  // ==========================================================
   // RENDER
   // ==========================================================
 
   return (
+
     <div className="page">
+
 
       {/* ====================================================
           HEADER
@@ -420,6 +638,7 @@ function Analyst() {
       ==================================================== */}
 
       <div className="question-card">
+
 
         <div className="question-header">
 
@@ -454,12 +673,15 @@ function Analyst() {
           </label>
 
           <select
+
             value={
               selectedDataset?.dataset_id ?? ""
             }
+
             disabled={
               loadingDatasets
             }
+
             onChange={event =>
               handleDatasetChange(
                 Number(
@@ -467,18 +689,22 @@ function Analyst() {
                 )
               )
             }
+
           >
 
             {datasets.map(
               dataset => (
 
                 <option
+
                   key={
                     dataset.dataset_id
                   }
+
                   value={
                     dataset.dataset_id
                   }
+
                 >
 
                   {
@@ -500,6 +726,7 @@ function Analyst() {
         ================================================== */}
 
         <textarea
+
           value={question}
 
           onChange={event =>
@@ -511,8 +738,11 @@ function Analyst() {
           onKeyDown={event => {
 
             if (
+
               event.key === "Enter" &&
+
               event.ctrlKey
+
             ) {
 
               event.preventDefault();
@@ -526,6 +756,7 @@ function Analyst() {
           placeholder="e.g. What is the total Sales?"
 
           rows={5}
+
         />
 
 
@@ -540,18 +771,25 @@ function Analyst() {
           </span>
 
           <button
+
             type="button"
+
             className="ask-button"
 
             disabled={
+
               !question.trim() ||
+
               !selectedDataset ||
+
               loading
+
             }
 
             onClick={
               handleAskQuestion
             }
+
           >
 
             {loading
@@ -576,7 +814,9 @@ function Analyst() {
       {error && (
 
         <div className="error-message">
+
           {error}
+
         </div>
 
       )}
@@ -589,6 +829,7 @@ function Analyst() {
       {answer && (
 
         <div className="answer-card">
+
 
           <div className="answer-header">
 
@@ -621,16 +862,20 @@ function Analyst() {
           ================================================== */}
 
           <div
+
             style={{
               marginTop: "20px",
               display: "flex",
               alignItems: "center",
               gap: "12px",
             }}
+
           >
 
             <button
+
               type="button"
+
               className="ask-button"
 
               onClick={
@@ -640,6 +885,7 @@ function Analyst() {
               disabled={
                 reportSaved
               }
+
             >
 
               {reportSaved
@@ -652,12 +898,16 @@ function Analyst() {
             {reportSaved && (
 
               <span
+
                 style={{
                   fontSize: "14px",
                   color: "#64748b",
                 }}
+
               >
+
                 Saved to Reports
+
               </span>
 
             )}
@@ -676,6 +926,7 @@ function Analyst() {
       {analysisDetails && (
 
         <div className="analysis-details-card">
+
 
           {/* ==================================================
               HEADER
@@ -707,6 +958,7 @@ function Analyst() {
           ================================================== */}
 
           <div className="analysis-details-grid">
+
 
             <div className="analysis-detail-item">
 
@@ -779,11 +1031,14 @@ function Analyst() {
                   ([key, value]) => (
 
                     <span
+
                       className="filter-badge"
+
                       key={key}
+
                     >
 
-                      {key} = {value}
+                      {key} = {String(value)}
 
                     </span>
 
@@ -809,35 +1064,10 @@ function Analyst() {
 
 
             {/* =================================================
-                RESULT TABLE
+                GROUPED RESULT TABLE
             ================================================= */}
 
-            {(
-              analysisDetails.operation ===
-                "group_sum" ||
-
-              analysisDetails.operation ===
-                "group_average" ||
-
-              analysisDetails.operation ===
-                "group_percentage" ||
-
-              analysisDetails.operation ===
-                "top_n" ||
-
-              analysisDetails.operation ===
-                "bottom_n"
-
-            ) &&
-
-            analysisDetails.result !== null &&
-
-            typeof analysisDetails.result ===
-              "object" &&
-
-            !Array.isArray(
-              analysisDetails.result
-            ) ? (
+            {isTableResult() ? (
 
               <div
                 className="analysis-result-table-wrapper"
@@ -860,11 +1090,7 @@ function Analyst() {
 
                       <th>
                         {
-                          analysisDetails.operation ===
-                          "group_percentage"
-                            ? "Percentage"
-                            : analysisDetails.column ||
-                              "Value"
+                          getResultValueLabel()
                         }
                       </th>
 
@@ -898,9 +1124,11 @@ function Analyst() {
 
                               ? analysisDetails.operation ===
                                 "group_percentage"
+
                                 ? formatPercentage(
                                     value
                                   )
+
                                 : formatNumber(
                                     value
                                   )
@@ -925,11 +1153,13 @@ function Analyst() {
             ) : (
 
               <pre>
+
                 {JSON.stringify(
                   analysisDetails.result,
                   null,
                   2
                 )}
+
               </pre>
 
             )}
@@ -949,6 +1179,11 @@ function Analyst() {
               }}
             >
 
+
+              {/* =================================================
+                  VISUALIZATION HEADER
+              ================================================= */}
+
               <div
                 style={{
                   marginBottom: "18px",
@@ -965,29 +1200,23 @@ function Analyst() {
                   }}
                 >
 
-                  {analysisDetails.operation ===
-                  "group_percentage"
-                    ? `${analysisDetails.column || "Value"} Percentage by ${
-                        analysisDetails.group_by ||
-                        "Group"
-                      }`
-
-                    : analysisDetails.column
-                      ? `${analysisDetails.column} by ${
-                          analysisDetails.group_by ||
-                          "Group"
-                        }`
-
-                      : "Analysis Chart"}
+                  {
+                    getVisualizationTitle()
+                  }
 
                 </h3>
 
               </div>
 
 
+              {/* =================================================
+                  CHART
+              ================================================= */}
+
               {getChartValues().length > 0 ? (
 
                 <div
+
                   style={{
                     display: "flex",
                     flexDirection: "column",
@@ -997,6 +1226,7 @@ function Analyst() {
                     border: "1px solid #e2e8f0",
                     borderRadius: "14px",
                   }}
+
                 >
 
                   {getChartValues().map(
@@ -1005,7 +1235,9 @@ function Analyst() {
                       const maximum =
                         getChartMaximum();
 
+
                       const percentage =
+
                         analysisDetails.operation ===
                         "group_percentage"
 
@@ -1018,6 +1250,7 @@ function Analyst() {
                             )
 
                           : maximum > 0
+
                             ? Math.max(
                                 4,
                                 (
@@ -1025,14 +1258,23 @@ function Analyst() {
                                   maximum
                                 ) * 100
                               )
+
                             : 0;
 
+
                       return (
+
                         <div
                           key={item.label}
                         >
 
+
+                          {/* -------------------------------------
+                              CHART LABEL
+                          ------------------------------------- */}
+
                           <div
+
                             style={{
                               display: "flex",
                               justifyContent:
@@ -1043,41 +1285,58 @@ function Analyst() {
                                 "7px",
                               gap: "16px",
                             }}
+
                           >
 
                             <span
+
                               style={{
                                 fontWeight: 600,
                                 color:
                                   "#172033",
                               }}
+
                             >
+
                               {item.label}
+
                             </span>
 
+
                             <span
+
                               style={{
                                 fontWeight: 600,
                                 color:
                                   "#475569",
                               }}
+
                             >
 
-                              {analysisDetails.operation ===
-                              "group_percentage"
-                                ? formatPercentage(
-                                    item.value
-                                  )
-                                : formatNumber(
-                                    item.value
-                                  )}
+                              {
+                                analysisDetails.operation ===
+                                "group_percentage"
+
+                                  ? formatPercentage(
+                                      item.value
+                                    )
+
+                                  : formatNumber(
+                                      item.value
+                                    )
+                              }
 
                             </span>
 
                           </div>
 
 
+                          {/* -------------------------------------
+                              BAR BACKGROUND
+                          ------------------------------------- */}
+
                           <div
+
                             style={{
                               width: "100%",
                               height: "18px",
@@ -1088,9 +1347,15 @@ function Analyst() {
                               overflow:
                                 "hidden",
                             }}
+
                           >
 
+                            {/* ---------------------------------
+                                BAR
+                            --------------------------------- */}
+
                             <div
+
                               style={{
                                 width:
                                   `${percentage}%`,
@@ -1103,11 +1368,13 @@ function Analyst() {
                                 transition:
                                   "width 0.4s ease",
                               }}
+
                             />
 
                           </div>
 
                         </div>
+
                       );
 
                     }
@@ -1118,6 +1385,7 @@ function Analyst() {
               ) : (
 
                 <div
+
                   style={{
                     padding: "20px",
                     background: "#f8fafc",
@@ -1125,9 +1393,12 @@ function Analyst() {
                     borderRadius: "12px",
                     color: "#64748b",
                   }}
+
                 >
+
                   No numeric values are available
                   for visualization.
+
                 </div>
 
               )}
@@ -1141,7 +1412,9 @@ function Analyst() {
       )}
 
     </div>
+
   );
 }
+
 
 export default Analyst;
