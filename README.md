@@ -1,1 +1,1 @@
-this is application.
+This is AI application.
