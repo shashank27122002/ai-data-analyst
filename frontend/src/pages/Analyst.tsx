@@ -14,6 +14,23 @@ import type {
   AnalysisDetails,
 } from "../types/analysis";
 
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+
+// ==========================================================
+// COMPONENT
+// ==========================================================
 
 function Analyst() {
 
@@ -54,7 +71,9 @@ function Analyst() {
   // ==========================================================
 
   useEffect(() => {
+
     loadDatasets();
+
   }, []);
 
 
@@ -63,6 +82,7 @@ function Analyst() {
     try {
 
       setLoadingDatasets(true);
+
       setError("");
 
       const response =
@@ -170,7 +190,9 @@ function Analyst() {
       !selectedDataset ||
       !answer
     ) {
+
       return;
+
     }
 
     saveReport({
@@ -202,6 +224,7 @@ function Analyst() {
     });
 
     setReportSaved(true);
+
   }
 
 
@@ -231,11 +254,12 @@ function Analyst() {
     setError("");
 
     setReportSaved(false);
+
   }
 
 
   // ==========================================================
-  // CHECK IF RESULT CAN BE VISUALIZED
+  // GROUPED RESULT CHECK
   // ==========================================================
 
   function isGroupedResult(): boolean {
@@ -282,6 +306,7 @@ function Analyst() {
       )
 
     );
+
   }
 
 
@@ -317,11 +342,12 @@ function Analyst() {
       string,
       unknown
     >;
+
   }
 
 
   // ==========================================================
-  // GET NUMERIC CHART VALUES
+  // GET CHART VALUES
   // ==========================================================
 
   function getChartValues(): Array<{
@@ -345,8 +371,12 @@ function Analyst() {
               : Number(value);
 
           return {
+
             label,
-            value: numericValue,
+
+            value:
+              numericValue,
+
           };
 
         }
@@ -358,27 +388,62 @@ function Analyst() {
             item.value
           )
       );
+
   }
 
 
   // ==========================================================
-  // GET MAXIMUM CHART VALUE
+  // GET VISUALIZATION TITLE
   // ==========================================================
 
-  function getChartMaximum(): number {
+  function getVisualizationTitle(): string {
 
-    const values =
-      getChartValues();
-
-    if (values.length === 0) {
-      return 0;
+    if (!analysisDetails) {
+      return "Analysis Chart";
     }
 
-    return Math.max(
-      ...values.map(
-        item => item.value
-      )
-    );
+    if (
+      analysisDetails.operation ===
+      "group_percentage"
+    ) {
+
+      return `${
+        analysisDetails.column ||
+        "Value"
+      } Percentage by ${
+        analysisDetails.group_by ||
+        "Group"
+      }`;
+
+    }
+
+    if (
+      analysisDetails.operation ===
+      "group_count"
+    ) {
+
+      return `Count by ${
+        analysisDetails.group_by ||
+        "Group"
+      }`;
+
+    }
+
+    if (
+      analysisDetails.column
+    ) {
+
+      return `${
+        analysisDetails.column
+      } by ${
+        analysisDetails.group_by ||
+        "Group"
+      }`;
+
+    }
+
+    return "Analysis Chart";
+
   }
 
 
@@ -393,6 +458,7 @@ function Analyst() {
     return value.toLocaleString(
       "en-IN"
     );
+
   }
 
 
@@ -407,194 +473,113 @@ function Analyst() {
     return `${value.toLocaleString(
       "en-IN",
       {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+        minimumFractionDigits:
+          2,
+
+        maximumFractionDigits:
+          2,
       }
     )}%`;
+
   }
 
 
   // ==========================================================
-  // GET VISUALIZATION TITLE
+  // CUSTOM TOOLTIP
   // ==========================================================
 
-  function getVisualizationTitle(): string {
-
-    if (!analysisDetails) {
-      return "Analysis Chart";
-    }
-
-    const operation =
-      analysisDetails.operation;
-
-    const group =
-      analysisDetails.group_by ||
-      "Group";
-
-    const column =
-      analysisDetails.column ||
-      "Value";
-
-
-    // --------------------------------------------------------
-    // GROUP COUNT
-    // --------------------------------------------------------
+  function ChartTooltip({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: Array<{
+      value?: number;
+    }>;
+    label?: string;
+  }) {
 
     if (
-      operation === "group_count"
+      !active ||
+      !payload ||
+      payload.length === 0
     ) {
 
-      return `Count by ${group}`;
+      return null;
 
     }
 
-
-    // --------------------------------------------------------
-    // GROUP PERCENTAGE
-    // --------------------------------------------------------
-
-    if (
-      operation ===
-      "group_percentage"
-    ) {
-
-      return `Percentage by ${group}`;
-
-    }
-
-
-    // --------------------------------------------------------
-    // GROUP SUM
-    // --------------------------------------------------------
-
-    if (
-      operation === "group_sum"
-    ) {
-
-      return `${column} by ${group}`;
-
-    }
-
-
-    // --------------------------------------------------------
-    // GROUP AVERAGE
-    // --------------------------------------------------------
-
-    if (
-      operation ===
-      "group_average"
-    ) {
-
-      return `Average ${column} by ${group}`;
-
-    }
-
-
-    // --------------------------------------------------------
-    // TOP N
-    // --------------------------------------------------------
-
-    if (
-      operation === "top_n"
-    ) {
-
-      return `Top ${group} by ${column}`;
-
-    }
-
-
-    // --------------------------------------------------------
-    // BOTTOM N
-    // --------------------------------------------------------
-
-    if (
-      operation === "bottom_n"
-    ) {
-
-      return `Bottom ${group} by ${column}`;
-
-    }
-
-
-    return `${column} by ${group}`;
-  }
-
-
-  // ==========================================================
-  // GET RESULT TABLE VALUE LABEL
-  // ==========================================================
-
-  function getResultValueLabel(): string {
-
-    if (!analysisDetails) {
-      return "Value";
-    }
-
-    if (
-      analysisDetails.operation ===
-      "group_count"
-    ) {
-
-      return "Count";
-
-    }
-
-    if (
-      analysisDetails.operation ===
-      "group_percentage"
-    ) {
-
-      return "Percentage";
-
-    }
+    const value =
+      Number(
+        payload[0]?.value ?? 0
+      );
 
     return (
-      analysisDetails.column ||
-      "Value"
+
+      <div
+        style={{
+          background:
+            "#ffffff",
+
+          border:
+            "1px solid #e2e8f0",
+
+          borderRadius:
+            "10px",
+
+          padding:
+            "10px 14px",
+
+          boxShadow:
+            "0 4px 12px rgba(0,0,0,0.08)",
+        }}
+      >
+
+        <p
+          style={{
+            margin:
+              "0 0 4px",
+
+            fontWeight:
+              600,
+
+            color:
+              "#172033",
+          }}
+        >
+          {label}
+        </p>
+
+        <p
+          style={{
+            margin:
+              0,
+
+            color:
+              "#475569",
+          }}
+        >
+
+          {
+            analysisDetails?.operation ===
+            "group_percentage"
+
+              ? formatPercentage(
+                  value
+                )
+
+              : formatNumber(
+                  value
+                )
+          }
+
+        </p>
+
+      </div>
+
     );
-  }
 
-
-  // ==========================================================
-  // CHECK IF RESULT IS TABLE DATA
-  // ==========================================================
-
-  function isTableResult(): boolean {
-
-    if (!analysisDetails) {
-      return false;
-    }
-
-    const tableOperations = [
-
-      "group_sum",
-
-      "group_average",
-
-      "group_count",
-
-      "group_percentage",
-
-      "top_n",
-
-      "bottom_n",
-
-    ];
-
-    return (
-      tableOperations.includes(
-        analysisDetails.operation
-      ) &&
-
-      analysisDetails.result !== null &&
-
-      typeof analysisDetails.result ===
-        "object" &&
-
-      !Array.isArray(
-        analysisDetails.result
-      )
-    );
   }
 
 
@@ -606,14 +591,14 @@ function Analyst() {
 
     <div className="page">
 
-
       {/* ====================================================
           HEADER
       ==================================================== */}
 
       <div
         style={{
-          marginBottom: "32px",
+          marginBottom:
+            "32px",
         }}
       >
 
@@ -639,7 +624,6 @@ function Analyst() {
 
       <div className="question-card">
 
-
         <div className="question-header">
 
           <div className="question-icon">
@@ -663,7 +647,7 @@ function Analyst() {
 
 
         {/* ==================================================
-            DATASET
+            DATASET SELECTOR
         ================================================== */}
 
         <div className="dataset-selector">
@@ -675,19 +659,21 @@ function Analyst() {
           <select
 
             value={
-              selectedDataset?.dataset_id ?? ""
+              selectedDataset?.dataset_id ??
+              ""
             }
 
             disabled={
               loadingDatasets
             }
 
-            onChange={event =>
-              handleDatasetChange(
-                Number(
-                  event.target.value
+            onChange={
+              event =>
+                handleDatasetChange(
+                  Number(
+                    event.target.value
+                  )
                 )
-              )
             }
 
           >
@@ -696,7 +682,6 @@ function Analyst() {
               dataset => (
 
                 <option
-
                   key={
                     dataset.dataset_id
                   }
@@ -704,7 +689,6 @@ function Analyst() {
                   value={
                     dataset.dataset_id
                   }
-
                 >
 
                   {
@@ -722,53 +706,68 @@ function Analyst() {
 
 
         {/* ==================================================
-            QUESTION
+            QUESTION INPUT
         ================================================== */}
 
         <textarea
 
-          value={question}
-
-          onChange={event =>
-            setQuestion(
-              event.target.value
-            )
+          value={
+            question
           }
 
-          onKeyDown={event => {
+          onChange={
+            event =>
+              setQuestion(
+                event.target.value
+              )
+          }
 
-            if (
-
-              event.key === "Enter" &&
-
-              event.ctrlKey
-
-            ) {
-
-              event.preventDefault();
-
-              handleAskQuestion();
-
-            }
-
-          }}
-
-          placeholder="e.g. What is the total Sales?"
+          placeholder="Ask something about your data..."
 
           rows={5}
+
+          disabled={
+            loading
+          }
 
         />
 
 
         {/* ==================================================
-            FOOTER
+            QUESTION FOOTER
         ================================================== */}
 
-        <div className="question-footer">
+        <div
+          style={{
+            display:
+              "flex",
 
-          <span>
-            Try: "What is the total Sales?"
+            justifyContent:
+              "space-between",
+
+            alignItems:
+              "center",
+
+            marginTop:
+              "16px",
+
+            gap:
+              "16px",
+          }}
+        >
+
+          <span
+            style={{
+              color:
+                "#94a3b8",
+
+              fontSize:
+                "14px",
+            }}
+          >
+            Try: "Which products were sold in South?"
           </span>
+
 
           <button
 
@@ -776,18 +775,13 @@ function Analyst() {
 
             className="ask-button"
 
-            disabled={
-
-              !question.trim() ||
-
-              !selectedDataset ||
-
-              loading
-
-            }
-
             onClick={
               handleAskQuestion
+            }
+
+            disabled={
+              loading ||
+              !selectedDataset
             }
 
           >
@@ -814,9 +808,7 @@ function Analyst() {
       {error && (
 
         <div className="error-message">
-
           {error}
-
         </div>
 
       )}
@@ -829,7 +821,6 @@ function Analyst() {
       {answer && (
 
         <div className="answer-card">
-
 
           <div className="answer-header">
 
@@ -862,14 +853,19 @@ function Analyst() {
           ================================================== */}
 
           <div
-
             style={{
-              marginTop: "20px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-            }}
+              marginTop:
+                "20px",
 
+              display:
+                "flex",
+
+              alignItems:
+                "center",
+
+              gap:
+                "12px",
+            }}
           >
 
             <button
@@ -898,16 +894,15 @@ function Analyst() {
             {reportSaved && (
 
               <span
-
                 style={{
-                  fontSize: "14px",
-                  color: "#64748b",
+                  fontSize:
+                    "14px",
+
+                  color:
+                    "#64748b",
                 }}
-
               >
-
                 Saved to Reports
-
               </span>
 
             )}
@@ -926,7 +921,6 @@ function Analyst() {
       {analysisDetails && (
 
         <div className="analysis-details-card">
-
 
           {/* ==================================================
               HEADER
@@ -958,7 +952,6 @@ function Analyst() {
           ================================================== */}
 
           <div className="analysis-details-grid">
-
 
             <div className="analysis-detail-item">
 
@@ -1031,14 +1024,11 @@ function Analyst() {
                   ([key, value]) => (
 
                     <span
-
                       className="filter-badge"
-
                       key={key}
-
                     >
 
-                      {key} = {String(value)}
+                      {key} = {value}
 
                     </span>
 
@@ -1067,7 +1057,7 @@ function Analyst() {
                 GROUPED RESULT TABLE
             ================================================= */}
 
-            {isTableResult() ? (
+            {isGroupedResult() ? (
 
               <div
                 className="analysis-result-table-wrapper"
@@ -1089,9 +1079,22 @@ function Analyst() {
                       </th>
 
                       <th>
+
                         {
-                          getResultValueLabel()
+                          analysisDetails.operation ===
+                          "group_count"
+
+                            ? "Count"
+
+                            : analysisDetails.operation ===
+                              "group_percentage"
+
+                              ? "Percentage"
+
+                              : analysisDetails.column ||
+                                "Value"
                         }
+
                       </th>
 
                     </tr>
@@ -1152,6 +1155,10 @@ function Analyst() {
 
             ) : (
 
+              /* =============================================
+                 NORMAL RESULT
+              ============================================= */
+
               <pre>
 
                 {JSON.stringify(
@@ -1175,10 +1182,10 @@ function Analyst() {
 
             <div
               style={{
-                marginTop: "32px",
+                marginTop:
+                  "32px",
               }}
             >
-
 
               {/* =================================================
                   VISUALIZATION HEADER
@@ -1186,7 +1193,8 @@ function Analyst() {
 
               <div
                 style={{
-                  marginBottom: "18px",
+                  marginBottom:
+                    "18px",
                 }}
               >
 
@@ -1196,7 +1204,8 @@ function Analyst() {
 
                 <h3
                   style={{
-                    marginTop: "4px",
+                    marginTop:
+                      "4px",
                   }}
                 >
 
@@ -1216,168 +1225,207 @@ function Analyst() {
               {getChartValues().length > 0 ? (
 
                 <div
-
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "18px",
-                    padding: "24px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "14px",
-                  }}
+                    padding:
+                      "24px",
 
+                    background:
+                      "#f8fafc",
+
+                    border:
+                      "1px solid #e2e8f0",
+
+                    borderRadius:
+                      "14px",
+                  }}
                 >
 
-                  {getChartValues().map(
-                    item => {
+                  {/* ============================================
+                      PIE / DONUT FOR PERCENTAGES
+                  ============================================ */}
 
-                      const maximum =
-                        getChartMaximum();
+                  {analysisDetails.operation ===
+                  "group_percentage" ? (
 
+                    <div
+                      style={{
+                        width:
+                          "100%",
 
-                      const percentage =
+                        height:
+                          "360px",
+                      }}
+                    >
 
-                        analysisDetails.operation ===
-                        "group_percentage"
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                      >
 
-                          ? Math.min(
-                              Math.max(
-                                item.value,
-                                4
-                              ),
-                              100
-                            )
+                        <PieChart>
 
-                          : maximum > 0
+                          <Pie
 
-                            ? Math.max(
-                                4,
-                                (
-                                  item.value /
-                                  maximum
-                                ) * 100
+                            data={
+                              getChartValues().map(
+                                item => ({
+                                  name:
+                                    item.label,
+
+                                  value:
+                                    item.value,
+                                })
                               )
+                            }
 
-                            : 0;
+                            dataKey="value"
+
+                            nameKey="name"
+
+                            cx="50%"
+
+                            cy="50%"
+
+                            outerRadius={120}
+
+                            innerRadius={65}
+
+                            paddingAngle={2}
+
+                            label
+
+                          >
+
+                            {getChartValues().map(
+                              (_, index) => (
+
+                                <Cell
+                                  key={
+                                    `cell-${index}`
+                                  }
+                                />
+
+                              )
+                            )}
+
+                          </Pie>
 
 
-                      return (
+                          <Tooltip
+                            content={
+                              <ChartTooltip />
+                            }
+                          />
 
-                        <div
-                          key={item.label}
+                        </PieChart>
+
+                      </ResponsiveContainer>
+
+                    </div>
+
+                  ) : (
+
+                    /* ==========================================
+                       BAR CHART
+                    ========================================== */
+
+                    <div
+                      style={{
+                        width:
+                          "100%",
+
+                        height:
+                          "380px",
+                      }}
+                    >
+
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                      >
+
+                        <BarChart
+
+                          data={
+                            getChartValues().map(
+                              item => ({
+                                name:
+                                  item.label,
+
+                                value:
+                                  item.value,
+                              })
+                            )
+                          }
+
+                          margin={{
+                            top:
+                              10,
+
+                            right:
+                              20,
+
+                            left:
+                              20,
+
+                            bottom:
+                              50,
+                          }}
+
                         >
 
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                          />
 
-                          {/* -------------------------------------
-                              CHART LABEL
-                          ------------------------------------- */}
+                          <XAxis
 
-                          <div
+                            dataKey="name"
 
-                            style={{
-                              display: "flex",
-                              justifyContent:
-                                "space-between",
-                              alignItems:
-                                "center",
-                              marginBottom:
-                                "7px",
-                              gap: "16px",
-                            }}
+                            interval={0}
 
-                          >
+                            angle={
+                              getChartValues().length >
+                              5
+                                ? -35
+                                : 0
+                            }
 
-                            <span
+                            textAnchor={
+                              getChartValues().length >
+                              5
+                                ? "end"
+                                : "middle"
+                            }
 
-                              style={{
-                                fontWeight: 600,
-                                color:
-                                  "#172033",
-                              }}
+                            height={80}
 
-                            >
+                          />
 
-                              {item.label}
+                          <YAxis />
 
-                            </span>
+                          <Tooltip
+                            content={
+                              <ChartTooltip />
+                            }
+                          />
 
+                          <Bar
+                            dataKey="value"
+                            radius={[
+                              6,
+                              6,
+                              0,
+                              0
+                            ]}
+                          />
 
-                            <span
+                        </BarChart>
 
-                              style={{
-                                fontWeight: 600,
-                                color:
-                                  "#475569",
-                              }}
+                      </ResponsiveContainer>
 
-                            >
+                    </div>
 
-                              {
-                                analysisDetails.operation ===
-                                "group_percentage"
-
-                                  ? formatPercentage(
-                                      item.value
-                                    )
-
-                                  : formatNumber(
-                                      item.value
-                                    )
-                              }
-
-                            </span>
-
-                          </div>
-
-
-                          {/* -------------------------------------
-                              BAR BACKGROUND
-                          ------------------------------------- */}
-
-                          <div
-
-                            style={{
-                              width: "100%",
-                              height: "18px",
-                              background:
-                                "#e2e8f0",
-                              borderRadius:
-                                "999px",
-                              overflow:
-                                "hidden",
-                            }}
-
-                          >
-
-                            {/* ---------------------------------
-                                BAR
-                            --------------------------------- */}
-
-                            <div
-
-                              style={{
-                                width:
-                                  `${percentage}%`,
-                                height:
-                                  "100%",
-                                background:
-                                  "#172033",
-                                borderRadius:
-                                  "999px",
-                                transition:
-                                  "width 0.4s ease",
-                              }}
-
-                            />
-
-                          </div>
-
-                        </div>
-
-                      );
-
-                    }
                   )}
 
                 </div>
@@ -1385,15 +1433,22 @@ function Analyst() {
               ) : (
 
                 <div
-
                   style={{
-                    padding: "20px",
-                    background: "#f8fafc",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "12px",
-                    color: "#64748b",
-                  }}
+                    padding:
+                      "20px",
 
+                    background:
+                      "#f8fafc",
+
+                    border:
+                      "1px solid #e2e8f0",
+
+                    borderRadius:
+                      "12px",
+
+                    color:
+                      "#64748b",
+                  }}
                 >
 
                   No numeric values are available
@@ -1414,6 +1469,7 @@ function Analyst() {
     </div>
 
   );
+
 }
 
 

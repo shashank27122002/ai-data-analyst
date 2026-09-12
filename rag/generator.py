@@ -109,6 +109,7 @@ ANSWER
                 "content": prompt
             }
         ],
+        max_completion_tokens=512,
         temperature=0,
         
     )
@@ -129,10 +130,7 @@ ANSWER
     # ========================================================
 
     if not answer:
-
-        return (
-            "I could not generate an answer."
-        )
+        return context.strip()
 
     # ========================================================
     # CLEAN ANSWER
