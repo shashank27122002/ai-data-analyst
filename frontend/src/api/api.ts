@@ -1,5 +1,10 @@
 const API_BASE_URL = "http://127.0.0.1:8000";
 
+
+// ============================================================
+// DATASET TYPES
+// ============================================================
+
 export interface Dataset {
   dataset_id: number;
   original_filename: string;
@@ -11,10 +16,30 @@ export interface Dataset {
   created_at?: string;
 }
 
+
 export interface DatasetListResponse {
   count: number;
   datasets: Dataset[];
 }
+
+
+// ============================================================
+// RAG SOURCE
+// ============================================================
+
+export interface RagSource {
+  rank: number;
+  chunk_id: number;
+  chunk_type: string;
+  content: string;
+  distance: number;
+  similarity: number;
+}
+
+
+// ============================================================
+// QUERY RESPONSE
+// ============================================================
 
 export interface QueryResponse {
   dataset_id: number;
@@ -32,8 +57,14 @@ export interface QueryResponse {
 
   rag?: {
     chunk_count: number;
+    sources?: RagSource[];
   };
 }
+
+
+// ============================================================
+// DATASET PREVIEW
+// ============================================================
 
 export interface DatasetPreviewResponse {
   dataset_id: number;
@@ -44,6 +75,11 @@ export interface DatasetPreviewResponse {
   columns: string[];
   data: Record<string, unknown>[];
 }
+
+
+// ============================================================
+// DELETE DATASET RESPONSE
+// ============================================================
 
 export interface DeleteDatasetResponse {
   message: string;
@@ -88,6 +124,7 @@ export async function getDataset(
   );
 
   if (!response.ok) {
+
     const error =
       await response.json().catch(
         () => null
@@ -95,7 +132,7 @@ export async function getDataset(
 
     throw new Error(
       error?.detail ||
-        "Failed to fetch dataset."
+      "Failed to fetch dataset."
     );
   }
 
@@ -137,7 +174,7 @@ export async function askQuestion(
 
     throw new Error(
       error?.detail ||
-        "Failed to process question."
+      "Failed to process question."
     );
   }
 
@@ -179,7 +216,7 @@ export async function uploadDataset(
 
     throw new Error(
       error?.detail ||
-        "Failed to upload dataset."
+      "Failed to upload dataset."
     );
   }
 
@@ -210,7 +247,7 @@ export async function getDatasetPreview(
 
     throw new Error(
       error?.detail ||
-        "Failed to load dataset preview."
+      "Failed to load dataset preview."
     );
   }
 
@@ -243,18 +280,25 @@ export async function deleteDataset(
 
     throw new Error(
       error?.detail ||
-        "Failed to delete dataset."
+      "Failed to delete dataset."
     );
   }
 
   return response.json();
 }
+
+
+// ============================================================
+// DATASET STATISTICS
+// ============================================================
+
 export interface DatasetStatistics {
   dataset_id: number;
   table_name: string;
   rows: number;
   columns: number;
   numeric_columns: string[];
+
   numeric_statistics: Record<
     string,
     {
@@ -267,20 +311,25 @@ export interface DatasetStatistics {
   >;
 }
 
+
 export async function getDatasetStatistics(
   datasetId: number
 ): Promise<DatasetStatistics> {
+
   const response = await fetch(
     `${API_BASE_URL}/datasets/${datasetId}/statistics`
   );
 
   if (!response.ok) {
+
     const error =
-      await response.json().catch(() => null);
+      await response.json().catch(
+        () => null
+      );
 
     throw new Error(
       error?.detail ||
-        "Failed to load dataset statistics."
+      "Failed to load dataset statistics."
     );
   }
 

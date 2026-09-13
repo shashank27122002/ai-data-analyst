@@ -270,6 +270,78 @@ def build_metadata_context(
 
 
 # ============================================================
+# BUILD RAG SOURCES
+# ============================================================
+
+def build_rag_sources(
+    chunks
+):
+    """
+    Convert retrieved RAG chunks into a frontend-friendly
+    source/evidence structure.
+    """
+
+    sources = []
+
+    for index, chunk in enumerate(
+        chunks,
+        start=1
+    ):
+
+        # ----------------------------------------------------
+        # pgvector returns cosine distance.
+        #
+        # Similarity is approximated as:
+        #
+        # similarity = 1 - distance
+        # ----------------------------------------------------
+
+        try:
+
+            distance = float(
+                chunk.distance
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            distance = 1.0
+
+        similarity = max(
+            0.0,
+            min(
+                1.0,
+                1.0 - distance
+            )
+        )
+
+        sources.append({
+
+            "rank":
+                index,
+
+            "chunk_id":
+                chunk.id,
+
+            "chunk_type":
+                chunk.chunk_type,
+
+            "content":
+                chunk.content,
+
+            "distance":
+                distance,
+
+            "similarity":
+                similarity
+        })
+
+    return sources
+
+
+# ============================================================
 # RUN PIPELINE
 # ============================================================
 
@@ -312,7 +384,11 @@ def run_pipeline(
                 ↓
             pgvector Retriever
                 ↓
+            Retrieved Sources
+                ↓
             Groq
+                ↓
+            Answer + Evidence
     """
 
     # ========================================================
@@ -640,7 +716,10 @@ def run_pipeline(
                 "rag": {
 
                     "chunk_count":
-                        0
+                        0,
+
+                    "sources":
+                        []
                 },
 
                 "answer":
@@ -689,7 +768,24 @@ def run_pipeline(
     )
 
     # ========================================================
-    # 9. GENERATE RAG ANSWER
+    # 9. BUILD SOURCES
+    # ========================================================
+
+    print(
+        "[DEBUG] Building RAG sources"
+    )
+
+    sources = build_rag_sources(
+        chunks
+    )
+
+    print(
+        f"[DEBUG] Number of RAG sources = "
+        f"{len(sources)}"
+    )
+
+    # ========================================================
+    # 10. GENERATE RAG ANSWER
     # ========================================================
 
     print(
@@ -710,7 +806,7 @@ def run_pipeline(
     )
 
     # ========================================================
-    # 10. RETURN RAG DETAILS
+    # 11. RETURN RAG DETAILS
     # ========================================================
 
     if return_details:
@@ -723,7 +819,10 @@ def run_pipeline(
             "rag": {
 
                 "chunk_count":
-                    len(chunks)
+                    len(chunks),
+
+                "sources":
+                    sources
             },
 
             "answer":

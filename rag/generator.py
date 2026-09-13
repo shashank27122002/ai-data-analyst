@@ -21,7 +21,7 @@ def generate_answer(
     context: str
 ) -> str:
     """
-    Generate a final answer using the exact
+    Generate a concise final answer using the exact
     analysis result or retrieved RAG context.
 
     The provided context is authoritative.
@@ -34,43 +34,25 @@ def generate_answer(
     prompt = f"""
 You are an AI Data Analyst.
 
-Answer the user's question using ONLY the
-information provided in the context.
+Answer the user's question using ONLY the information
+provided in the context.
 
 IMPORTANT:
 
-The context may contain an EXACT result calculated
-by Python from the dataset.
-
-If the context contains an exact analytical result:
-
-- Treat it as authoritative.
-- Do NOT recalculate it.
-- Do NOT retrieve or infer additional records.
-- Do NOT remove any values.
-- Do NOT omit any items from a list.
-- Preserve ALL values present in the result.
-- Do NOT replace the result with information from
-  your general knowledge.
+- The context may contain an EXACT result calculated by Python.
+- Treat exact analytical results as authoritative.
+- Do NOT recalculate the result.
 - Do NOT invent values.
-
-For list/distinct questions, include EVERY item
-listed under "Results".
-
-For example, if the context says:
-
-Results:
-- Laptop
-- Tablet
-- Monitor
-
-the answer MUST mention:
-
-Laptop, Tablet, and Monitor.
-
-Do not answer with only some of the values.
-
-Give a clear and concise natural-language answer.
+- Do NOT remove values.
+- Do NOT omit values.
+- Do NOT use general knowledge.
+- For grouped results, include every group and its value.
+- For distinct/list questions, include every item provided.
+- Return ONLY the final answer.
+- Do NOT provide reasoning.
+- Do NOT provide a thinking process.
+- Do NOT explain how you arrived at the answer.
+- Keep the answer concise.
 
 ============================================================
 DATASET / ANALYSIS CONTEXT
@@ -85,7 +67,7 @@ USER QUESTION
 {question}
 
 ============================================================
-ANSWER
+FINAL ANSWER
 ============================================================
 """
 
@@ -95,13 +77,15 @@ ANSWER
 
     response = client.chat.completions.create(
         model="qwen/qwen3.6-27b",
+
         messages=[
             {
                 "role": "system",
                 "content": (
                     "You are a precise AI Data Analyst. "
-                    "Never omit values from an exact "
-                    "analysis result."
+                    "Return only the final answer. "
+                    "Never expose reasoning or thinking. "
+                    "Never omit values from an exact analysis result."
                 )
             },
             {
@@ -109,9 +93,14 @@ ANSWER
                 "content": prompt
             }
         ],
+
         max_completion_tokens=512,
+
         temperature=0,
-        
+
+        reasoning_effort="none",
+
+        reasoning_format="hidden",
     )
 
     # ========================================================
@@ -126,7 +115,7 @@ ANSWER
     )
 
     # ========================================================
-    # EMPTY RESPONSE
+    # EMPTY RESPONSE FALLBACK
     # ========================================================
 
     if not answer:
@@ -141,9 +130,6 @@ ANSWER
     # ========================================================
     # SAFETY CLEANUP
     # ========================================================
-
-    # In case the model still returns
-    # reasoning tags for any reason.
 
     if "<think>" in answer:
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   getReports,
@@ -9,6 +9,10 @@ import {
 import type { Report } from "../types/report";
 
 
+// ==========================================================
+// COMPONENT
+// ==========================================================
+
 function Reports() {
 
   // ==========================================================
@@ -18,13 +22,21 @@ function Reports() {
   const [reports, setReports] =
     useState<Report[]>([]);
 
+  const [searchQuery, setSearchQuery] =
+    useState("");
+
+  const [selectedDataset, setSelectedDataset] =
+    useState("ALL");
+
 
   // ==========================================================
   // LOAD REPORTS
   // ==========================================================
 
   useEffect(() => {
+
     loadReports();
+
   }, []);
 
 
@@ -36,7 +48,94 @@ function Reports() {
     setReports(
       storedReports
     );
+
   }
+
+
+  // ==========================================================
+  // DATASET OPTIONS
+  // ==========================================================
+
+  const datasetOptions =
+    useMemo(() => {
+
+      const names =
+        reports.map(
+          report =>
+            report.datasetName
+        );
+
+      return Array.from(
+        new Set(names)
+      );
+
+    }, [reports]);
+
+
+  // ==========================================================
+  // FILTER REPORTS
+  // ==========================================================
+
+  const filteredReports =
+    useMemo(() => {
+
+      const search =
+        searchQuery
+          .trim()
+          .toLowerCase();
+
+      return reports.filter(
+        report => {
+
+          const matchesDataset =
+            selectedDataset === "ALL" ||
+            report.datasetName ===
+              selectedDataset;
+
+          if (!matchesDataset) {
+            return false;
+          }
+
+          if (!search) {
+            return true;
+          }
+
+          return (
+
+            report.question
+              .toLowerCase()
+              .includes(search) ||
+
+            report.answer
+              .toLowerCase()
+              .includes(search) ||
+
+            report.datasetName
+              .toLowerCase()
+              .includes(search) ||
+
+            (report.operation || "")
+              .toLowerCase()
+              .includes(search) ||
+
+            (report.column || "")
+              .toLowerCase()
+              .includes(search) ||
+
+            (report.groupBy || "")
+              .toLowerCase()
+              .includes(search)
+
+          );
+
+        }
+      );
+
+    }, [
+      reports,
+      searchQuery,
+      selectedDataset,
+    ]);
 
 
   // ==========================================================
@@ -54,6 +153,7 @@ function Reports() {
     setReports(
       getReports()
     );
+
   }
 
 
@@ -66,6 +166,13 @@ function Reports() {
     clearReports();
 
     setReports([]);
+
+    setSearchQuery("");
+
+    setSelectedDataset(
+      "ALL"
+    );
+
   }
 
 
@@ -83,12 +190,13 @@ function Reports() {
     ) {
 
       return value.toLocaleString(
-        "en-US"
+        "en-IN"
       );
 
     }
 
     return String(value);
+
   }
 
 
@@ -103,7 +211,6 @@ function Reports() {
     const parsedDate =
       new Date(date);
 
-
     if (
       Number.isNaN(
         parsedDate.getTime()
@@ -111,16 +218,57 @@ function Reports() {
     ) {
 
       return date;
+
     }
 
-
     return parsedDate.toLocaleString(
-      "en-US",
+      "en-IN",
       {
-        dateStyle: "short",
-        timeStyle: "medium",
+        dateStyle: "medium",
+        timeStyle: "short",
       }
     );
+
+  }
+
+
+  // ==========================================================
+  // FORMAT RESULT VALUE
+  // ==========================================================
+
+  function formatResultValue(
+    value: unknown,
+    report: Report
+  ): string {
+
+    if (
+      typeof value === "number" &&
+      Number.isFinite(value)
+    ) {
+
+      if (
+        report.operation ===
+        "group_percentage"
+      ) {
+
+        return `${value.toLocaleString(
+          "en-IN",
+          {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }
+        )}%`;
+
+      }
+
+      return formatNumber(
+        value
+      );
+
+    }
+
+    return String(value);
+
   }
 
 
@@ -137,11 +285,30 @@ function Reports() {
 
 
     // ========================================================
+    // NO RESULT
+    // ========================================================
+
+    if (
+      result === null ||
+      result === undefined
+    ) {
+
+      return (
+
+        <div className="answer-box">
+          No result available.
+        </div>
+
+      );
+
+    }
+
+
+    // ========================================================
     // OBJECT RESULT
     // ========================================================
 
     if (
-      result !== null &&
       typeof result === "object" &&
       !Array.isArray(result)
     ) {
@@ -160,19 +327,26 @@ function Reports() {
       ) {
 
         return (
+
           <div className="answer-box">
             No result available.
           </div>
+
         );
+
       }
 
 
       return (
+
         <div
           style={{
-            overflowX: "auto",
+            overflowX:
+              "auto",
+
             border:
               "1px solid #e5e7eb",
+
             borderRadius:
               "12px",
           }}
@@ -180,7 +354,9 @@ function Reports() {
 
           <table
             style={{
-              width: "100%",
+              width:
+                "100%",
+
               borderCollapse:
                 "collapse",
             }}
@@ -199,14 +375,19 @@ function Reports() {
                   style={{
                     textAlign:
                       "left",
+
                     padding:
                       "14px 16px",
+
                     borderBottom:
                       "1px solid #e5e7eb",
+
                     fontSize:
                       "13px",
+
                     textTransform:
                       "uppercase",
+
                     letterSpacing:
                       "0.05em",
                   }}
@@ -224,22 +405,37 @@ function Reports() {
                   style={{
                     textAlign:
                       "right",
+
                     padding:
                       "14px 16px",
+
                     borderBottom:
                       "1px solid #e5e7eb",
+
                     fontSize:
                       "13px",
+
                     textTransform:
                       "uppercase",
+
                     letterSpacing:
                       "0.05em",
                   }}
                 >
 
                   {
-                    report.column ||
-                    "Value"
+                    report.operation ===
+                    "group_count"
+
+                      ? "Count"
+
+                      : report.operation ===
+                        "group_percentage"
+
+                        ? "Percentage"
+
+                        : report.column ||
+                          "Value"
                   }
 
                 </th>
@@ -262,6 +458,7 @@ function Reports() {
                       style={{
                         padding:
                           "14px 16px",
+
                         borderBottom:
                           "1px solid #e5e7eb",
                       }}
@@ -276,18 +473,22 @@ function Reports() {
                       style={{
                         padding:
                           "14px 16px",
+
                         borderBottom:
                           "1px solid #e5e7eb",
+
                         textAlign:
                           "right",
+
                         fontWeight:
                           600,
                       }}
                     >
 
                       {
-                        formatNumber(
-                          value
+                        formatResultValue(
+                          value,
+                          report
                         )
                       }
 
@@ -303,7 +504,9 @@ function Reports() {
           </table>
 
         </div>
+
       );
+
     }
 
 
@@ -316,6 +519,7 @@ function Reports() {
     ) {
 
       return (
+
         <div className="answer-box">
 
           {result.map(
@@ -326,14 +530,20 @@ function Reports() {
 
               <div
                 key={index}
+                style={{
+                  marginBottom:
+                    "6px",
+                }}
               >
 
                 {
                   typeof item ===
                   "object"
+
                     ? JSON.stringify(
                         item
                       )
+
                     : String(
                         item
                       )
@@ -345,7 +555,9 @@ function Reports() {
           )}
 
         </div>
+
       );
+
     }
 
 
@@ -354,16 +566,20 @@ function Reports() {
     // ========================================================
 
     return (
+
       <div className="answer-box">
 
         {
-          formatNumber(
-            result
+          formatResultValue(
+            result,
+            report
           )
         }
 
       </div>
+
     );
+
   }
 
 
@@ -374,7 +590,6 @@ function Reports() {
   return (
 
     <div className="page">
-
 
       {/* ====================================================
           HEADER
@@ -404,6 +619,7 @@ function Reports() {
         {reports.length > 0 && (
 
           <button
+            type="button"
             className="secondary-button"
             onClick={
               handleClearAll
@@ -452,6 +668,7 @@ function Reports() {
             style={{
               textAlign:
                 "center",
+
               padding:
                 "80px 20px",
             }}
@@ -475,15 +692,222 @@ function Reports() {
 
 
       {/* ====================================================
-          REPORT LIST
+          REPORT CONTROLS
       ==================================================== */}
 
       {reports.length > 0 && (
 
+        <section
+          className="card"
+          style={{
+            marginBottom:
+              "24px",
+          }}
+        >
+
+          <div
+            style={{
+              display:
+                "flex",
+
+              justifyContent:
+                "space-between",
+
+              alignItems:
+                "center",
+
+              gap:
+                "20px",
+
+              flexWrap:
+                "wrap",
+            }}
+          >
+
+            <div>
+
+              <div className="eyebrow">
+                REPORT LIBRARY
+              </div>
+
+              <h2
+                style={{
+                  margin:
+                    "4px 0",
+                }}
+              >
+
+                {filteredReports.length}
+
+                {" "}
+
+                {
+                  filteredReports.length ===
+                  1
+                    ? "Report"
+                    : "Reports"
+                }
+
+              </h2>
+
+            </div>
+
+
+            {/* ==============================================
+                SEARCH
+            ============================================== */}
+
+            <input
+              type="text"
+              value={
+                searchQuery
+              }
+              onChange={
+                event =>
+                  setSearchQuery(
+                    event.target.value
+                  )
+              }
+              placeholder="Search reports..."
+              style={{
+                flex:
+                  "1 1 280px",
+
+                maxWidth:
+                  "420px",
+
+                padding:
+                  "12px 14px",
+
+                border:
+                  "1px solid #e2e8f0",
+
+                borderRadius:
+                  "10px",
+
+                fontSize:
+                  "14px",
+
+                outline:
+                  "none",
+              }}
+            />
+
+
+            {/* ==============================================
+                DATASET FILTER
+            ============================================== */}
+
+            <select
+              value={
+                selectedDataset
+              }
+              onChange={
+                event =>
+                  setSelectedDataset(
+                    event.target.value
+                  )
+              }
+              style={{
+                padding:
+                  "12px 14px",
+
+                border:
+                  "1px solid #e2e8f0",
+
+                borderRadius:
+                  "10px",
+
+                background:
+                  "#ffffff",
+
+                fontSize:
+                  "14px",
+
+                minWidth:
+                  "190px",
+              }}
+            >
+
+              <option value="ALL">
+                All Datasets
+              </option>
+
+              {datasetOptions.map(
+                dataset => (
+
+                  <option
+                    key={
+                      dataset
+                    }
+                    value={
+                      dataset
+                    }
+                  >
+
+                    {
+                      dataset
+                    }
+
+                  </option>
+
+                )
+              )}
+
+            </select>
+
+          </div>
+
+        </section>
+
+      )}
+
+
+      {/* ====================================================
+          NO FILTER RESULTS
+      ==================================================== */}
+
+      {reports.length > 0 &&
+        filteredReports.length === 0 && (
+
+          <section className="card">
+
+            <div
+              style={{
+                textAlign:
+                  "center",
+
+                padding:
+                  "60px 20px",
+              }}
+            >
+
+              <h2>
+                No matching reports
+              </h2>
+
+              <p>
+                Try a different search
+                term or dataset.
+              </p>
+
+            </div>
+
+          </section>
+
+      )}
+
+
+      {/* ====================================================
+          REPORT LIST
+      ==================================================== */}
+
+      {filteredReports.length > 0 && (
+
         <div className="reports-list">
 
-          {reports.map(
-            (report) => (
+          {filteredReports.map(
+            report => (
 
               <section
                 className="card"
@@ -496,7 +920,6 @@ function Reports() {
                 }}
               >
 
-
                 {/* ==========================================
                     REPORT HEADER
                 ========================================== */}
@@ -505,16 +928,24 @@ function Reports() {
                   style={{
                     display:
                       "flex",
+
                     justifyContent:
                       "space-between",
+
                     alignItems:
                       "flex-start",
+
                     gap:
                       "20px",
                   }}
                 >
 
-                  <div>
+                  <div
+                    style={{
+                      flex:
+                        1,
+                    }}
+                  >
 
                     <div className="eyebrow">
                       ANALYSIS REPORT
@@ -545,6 +976,7 @@ function Reports() {
                       style={{
                         color:
                           "#64748b",
+
                         fontSize:
                           "14px",
                       }}
@@ -562,6 +994,7 @@ function Reports() {
 
 
                   <button
+                    type="button"
                     className="secondary-button"
                     onClick={() =>
                       handleDeleteReport(
@@ -714,7 +1147,9 @@ function Reports() {
       )}
 
     </div>
+
   );
+
 }
 
 

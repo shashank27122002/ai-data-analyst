@@ -4,15 +4,23 @@ import {
   getDatasets,
   askQuestion,
   type Dataset,
+  type RagSource,
 } from "../api/api";
 
 import {
   saveReport,
+  getReports,
+  deleteReport,
+  clearReports,
 } from "../services/reportService";
 
 import type {
   AnalysisDetails,
 } from "../types/analysis";
+
+import type {
+  Report,
+} from "../types/report";
 
 import {
   ResponsiveContainer,
@@ -53,6 +61,9 @@ function Analyst() {
   const [analysisDetails, setAnalysisDetails] =
     useState<AnalysisDetails | null>(null);
 
+  const [ragSources, setRagSources] =
+    useState<RagSource[]>([]);
+
   const [loading, setLoading] =
     useState(false);
 
@@ -65,17 +76,25 @@ function Analyst() {
   const [reportSaved, setReportSaved] =
     useState(false);
 
+  const [reports, setReports] =
+    useState<Report[]>([]);
+
 
   // ==========================================================
-  // LOAD DATASETS
+  // LOAD DATASETS + REPORT HISTORY
   // ==========================================================
 
   useEffect(() => {
 
     loadDatasets();
+    loadReports();
 
   }, []);
 
+
+  // ==========================================================
+  // LOAD DATASETS
+  // ==========================================================
 
   async function loadDatasets() {
 
@@ -120,6 +139,19 @@ function Analyst() {
 
 
   // ==========================================================
+  // LOAD REPORT HISTORY
+  // ==========================================================
+
+  function loadReports() {
+
+    setReports(
+      getReports()
+    );
+
+  }
+
+
+  // ==========================================================
   // ASK QUESTION
   // ==========================================================
 
@@ -148,6 +180,8 @@ function Analyst() {
 
       setAnalysisDetails(null);
 
+      setRagSources([]);
+
       setReportSaved(false);
 
       const response =
@@ -162,6 +196,10 @@ function Analyst() {
 
       setAnalysisDetails(
         response.analysis ?? null
+      );
+
+      setRagSources(
+        response.rag?.sources ?? []
       );
 
     } catch (err) {
@@ -225,6 +263,10 @@ function Analyst() {
 
     setReportSaved(true);
 
+    setReports(
+      getReports()
+    );
+
   }
 
 
@@ -250,6 +292,8 @@ function Analyst() {
     setAnswer("");
 
     setAnalysisDetails(null);
+
+    setRagSources([]);
 
     setError("");
 
@@ -915,6 +959,308 @@ function Analyst() {
 
 
       {/* ====================================================
+          RAG EVIDENCE
+      ==================================================== */}
+
+      {ragSources.length > 0 && (
+
+        <div
+          className="analysis-details-card"
+          style={{
+            marginTop:
+              "24px",
+          }}
+        >
+
+          {/* ==================================================
+              HEADER
+          ================================================== */}
+
+          <div className="analysis-details-header">
+
+            <div className="analysis-details-icon">
+              🔎
+            </div>
+
+            <div>
+
+              <p className="eyebrow">
+                RAG EVIDENCE
+              </p>
+
+              <h3>
+                Retrieved Sources
+              </h3>
+
+              <p
+                style={{
+                  margin:
+                    "4px 0 0",
+
+                  color:
+                    "#64748b",
+                }}
+              >
+                Relevant information retrieved
+                from the selected dataset.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* ==================================================
+              SOURCE COUNT
+          ================================================== */}
+
+          <div
+            style={{
+              marginTop:
+                "18px",
+
+              marginBottom:
+                "18px",
+
+              fontSize:
+                "14px",
+
+              color:
+                "#64748b",
+            }}
+          >
+
+            {
+              ragSources.length
+            }{" "}
+
+            {
+              ragSources.length === 1
+                ? "source"
+                : "sources"
+            }{" "}
+
+            retrieved
+
+          </div>
+
+
+          {/* ==================================================
+              SOURCES
+          ================================================== */}
+
+          <div
+            style={{
+              display:
+                "flex",
+
+              flexDirection:
+                "column",
+
+              gap:
+                "16px",
+            }}
+          >
+
+            {ragSources.map(
+              source => (
+
+                <div
+                  key={
+                    `${source.chunk_id}-${source.rank}`
+                  }
+                  style={{
+                    border:
+                      "1px solid #e2e8f0",
+
+                    borderRadius:
+                      "12px",
+
+                    padding:
+                      "18px",
+
+                    background:
+                      "#f8fafc",
+                  }}
+                >
+
+                  {/* ========================================
+                      SOURCE HEADER
+                  ======================================== */}
+
+                  <div
+                    style={{
+                      display:
+                        "flex",
+
+                      justifyContent:
+                        "space-between",
+
+                      alignItems:
+                        "center",
+
+                      gap:
+                        "16px",
+
+                      flexWrap:
+                        "wrap",
+
+                      marginBottom:
+                        "12px",
+                    }}
+                  >
+
+                    <strong
+                      style={{
+                        color:
+                          "#172033",
+                      }}
+                    >
+
+                      Source{" "}
+                      {source.rank}
+
+                    </strong>
+
+
+                    <span
+                      style={{
+                        fontSize:
+                          "13px",
+
+                        fontWeight:
+                          600,
+
+                        padding:
+                          "5px 9px",
+
+                        borderRadius:
+                          "999px",
+
+                        background:
+                          "#ffffff",
+
+                        border:
+                          "1px solid #e2e8f0",
+
+                        color:
+                          "#475569",
+                      }}
+                    >
+
+                      Similarity:{" "}
+
+                      {
+                        (
+                          source.similarity *
+                          100
+                        ).toFixed(1)
+                      }%
+
+                    </span>
+
+                  </div>
+
+
+                  {/* ========================================
+                      SOURCE METADATA
+                  ======================================== */}
+
+                  <div
+                    style={{
+                      display:
+                        "flex",
+
+                      gap:
+                        "8px",
+
+                      flexWrap:
+                        "wrap",
+
+                      marginBottom:
+                        "12px",
+
+                      fontSize:
+                        "13px",
+
+                      color:
+                        "#64748b",
+                    }}
+                  >
+
+                    <span
+                      className="filter-badge"
+                    >
+                      Chunk ID: {
+                        source.chunk_id
+                      }
+                    </span>
+
+                    <span
+                      className="filter-badge"
+                    >
+                      Type: {
+                        source.chunk_type
+                      }
+                    </span>
+
+                  </div>
+
+
+                  {/* ========================================
+                      SOURCE CONTENT
+                  ======================================== */}
+
+                  <div
+                    style={{
+                      padding:
+                        "14px",
+
+                      background:
+                        "#ffffff",
+
+                      border:
+                        "1px solid #e2e8f0",
+
+                      borderRadius:
+                        "10px",
+
+                      lineHeight:
+                        1.6,
+
+                      whiteSpace:
+                        "pre-wrap",
+
+                      color:
+                        "#334155",
+
+                      fontSize:
+                        "14px",
+
+                      overflowX:
+                        "auto",
+                    }}
+                  >
+
+                    {
+                      source.content
+                    }
+
+                  </div>
+
+                </div>
+
+              )
+            )}
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* ====================================================
           ANALYSIS DETAILS
       ==================================================== */}
 
@@ -1465,6 +1811,346 @@ function Analyst() {
         </div>
 
       )}
+
+
+      {/* ====================================================
+          QUERY HISTORY
+      ==================================================== */}
+
+      <div
+        className="analysis-details-card"
+        style={{
+          marginTop:
+            "32px",
+        }}
+      >
+
+        {/* ==================================================
+            HISTORY HEADER
+        ================================================== */}
+
+        <div className="analysis-details-header">
+
+          <div className="analysis-details-icon">
+            ◷
+          </div>
+
+          <div>
+
+            <p className="eyebrow">
+              QUERY HISTORY
+            </p>
+
+            <h3>
+              Previous Questions
+            </h3>
+
+          </div>
+
+        </div>
+
+
+        {/* ==================================================
+            EMPTY HISTORY
+        ================================================== */}
+
+        {reports.length === 0 ? (
+
+          <div
+            style={{
+              padding:
+                "24px 0",
+
+              color:
+                "#64748b",
+            }}
+          >
+            No saved queries yet.
+          </div>
+
+        ) : (
+
+          <>
+
+            {/* ================================================
+                CLEAR HISTORY
+            ================================================= */}
+
+            <div
+              style={{
+                display:
+                  "flex",
+
+                justifyContent:
+                  "flex-end",
+
+                marginBottom:
+                  "20px",
+              }}
+            >
+
+              <button
+                type="button"
+                className="ask-button"
+                onClick={() => {
+
+                  clearReports();
+
+                  setReports([]);
+
+                }}
+              >
+                Clear History
+              </button>
+
+            </div>
+
+
+            {/* ================================================
+                HISTORY ITEMS
+            ================================================= */}
+
+            <div
+              style={{
+                display:
+                  "flex",
+
+                flexDirection:
+                  "column",
+
+                gap:
+                  "16px",
+              }}
+            >
+
+              {reports.map(
+                report => (
+
+                  <div
+                    key={
+                      report.id
+                    }
+                    style={{
+                      padding:
+                        "20px",
+
+                      border:
+                        "1px solid #e2e8f0",
+
+                      borderRadius:
+                        "14px",
+
+                      background:
+                        "#f8fafc",
+                    }}
+                  >
+
+                    <div
+                      style={{
+                        display:
+                          "flex",
+
+                        justifyContent:
+                          "space-between",
+
+                        alignItems:
+                          "flex-start",
+
+                        gap:
+                          "20px",
+                      }}
+                    >
+
+                      {/* ======================================
+                          REPORT INFORMATION
+                      ======================================= */}
+
+                      <div
+                        style={{
+                          flex:
+                            1,
+                        }}
+                      >
+
+                        <p
+                          style={{
+                            margin:
+                              "0 0 6px",
+
+                            fontSize:
+                              "13px",
+
+                            color:
+                              "#64748b",
+                          }}
+                        >
+
+                          {
+                            report.datasetName
+                          }
+
+                        </p>
+
+
+                        <h4
+                          style={{
+                            margin:
+                              "0 0 10px",
+
+                            color:
+                              "#172033",
+
+                            fontSize:
+                              "16px",
+                          }}
+                        >
+
+                          {
+                            report.question
+                          }
+
+                        </h4>
+
+
+                        <p
+                          style={{
+                            margin:
+                              0,
+
+                            color:
+                              "#475569",
+
+                            lineHeight:
+                              1.6,
+                          }}
+                        >
+
+                          {
+                            report.answer
+                          }
+
+                        </p>
+
+
+                        {/* ====================================
+                            REPORT META
+                        ===================================== */}
+
+                        <div
+                          style={{
+                            display:
+                              "flex",
+
+                            gap:
+                              "8px",
+
+                            flexWrap:
+                              "wrap",
+
+                            marginTop:
+                              "14px",
+                          }}
+                        >
+
+                          {report.operation && (
+
+                            <span
+                              className="filter-badge"
+                            >
+                              {
+                                report.operation
+                              }
+                            </span>
+
+                          )}
+
+
+                          {report.groupBy && (
+
+                            <span
+                              className="filter-badge"
+                            >
+                              Grouped by {
+                                report.groupBy
+                              }
+                            </span>
+
+                          )}
+
+
+                          <span
+                            className="filter-badge"
+                          >
+
+                            {
+                              new Date(
+                                report.createdAt
+                              ).toLocaleString(
+                                "en-IN"
+                              )
+                            }
+
+                          </span>
+
+                        </div>
+
+                      </div>
+
+
+                      {/* ======================================
+                          DELETE
+                      ======================================= */}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+
+                          deleteReport(
+                            report.id
+                          );
+
+                          setReports(
+                            getReports()
+                          );
+
+                        }}
+                        style={{
+                          border:
+                            "1px solid #e2e8f0",
+
+                          background:
+                            "#ffffff",
+
+                          borderRadius:
+                            "8px",
+
+                          padding:
+                            "8px 12px",
+
+                          cursor:
+                            "pointer",
+
+                          color:
+                            "#64748b",
+                        }}
+                      >
+                        Delete
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+          </>
+
+        )}
+
+      </div>
 
     </div>
 
