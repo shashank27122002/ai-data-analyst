@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     GROQ_API_KEY: str
 
+    JWT_SECRET_KEY: str
+
     class Config:
         env_file = BASE_DIR / ".env"
 

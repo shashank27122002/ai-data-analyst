@@ -54,3 +54,65 @@ class Dataset(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+
+# ============================================================
+# USER MODEL
+# ============================================================
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    email = Column(
+        String(320),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    password_hash = Column(
+        String(255),
+        nullable=False
+    )
+
+    role = Column(
+        String(50),
+        nullable=False,
+        default="user"
+    )
+
+    is_active = Column(
+        Integer,
+        nullable=False,
+        default=1
+    )
+
+    is_verified = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
+    last_login_at = Column(
+        DateTime,
+        nullable=True
+    )

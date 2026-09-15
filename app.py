@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from api.auth_router import router as auth_router
 from api.upload import router as upload_router
 from api.datasets import router as datasets_router
 from api.query import router as query_router
@@ -20,7 +21,7 @@ app = FastAPI(
     description=(
         "AI Data Analyst using "
         "RAG, LLM and PostgreSQL"
-    )
+    ),
 )
 
 
@@ -44,17 +45,13 @@ app.add_middleware(
 # ROUTERS
 # ============================================================
 
-app.include_router(
-    upload_router
-)
+app.include_router(upload_router)
 
-app.include_router(
-    datasets_router
-)
+app.include_router(datasets_router)
 
-app.include_router(
-    query_router
-)
+app.include_router(query_router)
+
+app.include_router(auth_router)
 
 
 # ============================================================
@@ -63,10 +60,8 @@ app.include_router(
 
 @app.get("/")
 def root():
-
     return {
-        "message":
-            "AI Data Analyst API is running"
+        "message": "AI Data Analyst API is running"
     }
 
 
@@ -76,10 +71,8 @@ def root():
 
 @app.get("/health")
 def health():
-
     return {
-        "status":
-            "healthy"
+        "status": "healthy"
     }
 
 
@@ -99,23 +92,14 @@ def database_health():
             )
 
         return {
-            "database":
-                "connected",
-
-            "status":
-                "healthy"
+            "database": "connected",
+            "status": "healthy"
         }
 
     except Exception as error:
 
         return {
-
-            "database":
-                "disconnected",
-
-            "status":
-                "unhealthy",
-
-            "error":
-                str(error)
+            "database": "disconnected",
+            "status": "unhealthy",
+            "error": str(error)
         }
