@@ -7,13 +7,16 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
-    UploadFile
+    UploadFile,
 )
 
 from sqlalchemy.orm import Session
 
 from database.dataset_store import save_dataset
 from database.postgres import get_db
+from database.models import User
+
+from auth.dependencies import get_current_user
 
 from ingestion.cleaner import clean_dataframe
 from ingestion.csv_loader import load_csv
@@ -24,6 +27,10 @@ from ingestion.embedding_pipeline import (
     store_dataset_embeddings
 )
 
+
+# ============================================================
+# ROUTER
+# ============================================================
 
 router = APIRouter(
     prefix="/upload",
@@ -60,11 +67,15 @@ ALLOWED_EXTENSIONS = {
 @router.post("/")
 async def upload_file(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Upload, clean, profile, store and embed
     an Excel or CSV dataset.
+
+    Authentication:
+    A valid JWT access token is required.
     """
 
     # ========================================================
@@ -234,7 +245,8 @@ async def upload_file(
             stored_filename=unique_filename,
             file_type=extension,
             profile=profile,
-            unique_id=file_id
+            unique_id=file_id,
+            user_id=current_user.id
         )
 
         # ====================================================
@@ -260,6 +272,11 @@ async def upload_file(
                 "File uploaded, analyzed, "
                 "stored and indexed successfully."
             ),
+
+            "user": {
+                "user_id": current_user.id,
+                "email": current_user.email
+            },
 
             "database": {
 

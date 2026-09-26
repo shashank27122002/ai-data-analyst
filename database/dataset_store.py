@@ -1,8 +1,6 @@
 import json
-import re
 
 import pandas as pd
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database.models import Dataset
@@ -10,28 +8,21 @@ from database.postgres import engine
 
 
 def generate_table_name(
-    filename: str,
+    original_filename: str,
     unique_id: str
 ) -> str:
     """
-    Generate a safe and unique PostgreSQL table name.
+    Generate a unique PostgreSQL table name
+    for the uploaded dataset.
     """
 
-    # Remove file extension
-    name = filename.rsplit(".", 1)[0]
+    name = original_filename.rsplit(".", 1)[0]
 
-    # Replace special characters with underscore
-    name = re.sub(
-        r"[^a-zA-Z0-9_]",
-        "_",
-        name
+    # Keep only safe characters
+    name = "".join(
+        character if character.isalnum() else "_"
+        for character in name
     )
-
-    # Lowercase
-    name = name.lower()
-
-    # PostgreSQL identifiers should not become excessively long
-    name = name[:40]
 
     # Use first 8 characters from UUID
     short_id = unique_id.replace("-", "")[:8]
@@ -46,7 +37,8 @@ def save_dataset(
     stored_filename: str,
     file_type: str,
     profile: dict,
-    unique_id: str
+    unique_id: str,
+    user_id: int
 ) -> Dataset:
     """
     Store cleaned dataset as a PostgreSQL table
@@ -75,6 +67,7 @@ def save_dataset(
         # -----------------------------------------
 
         dataset = Dataset(
+            user_id=user_id,
             original_filename=original_filename,
             stored_filename=stored_filename,
             file_type=file_type,
@@ -93,6 +86,8 @@ def save_dataset(
 
         db.add(dataset)
         db.commit()
+
+        # Refresh object so generated ID is available
         db.refresh(dataset)
 
         return dataset
@@ -100,13 +95,14 @@ def save_dataset(
     except Exception:
         db.rollback()
 
-        # If metadata saving fails after the actual
-        # table was created, remove that table.
-        with engine.begin() as connection:
-            connection.execute(
-                text(
+        # If metadata storage fails after the table
+        # was created, remove the created table.
+        try:
+            with engine.begin() as connection:
+                connection.exec_driver_sql(
                     f'DROP TABLE IF EXISTS "{table_name}"'
                 )
-            )
+        except Exception:
+            pass
 
         raise

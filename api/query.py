@@ -1,9 +1,22 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException
+)
+
 from pydantic import BaseModel
+
 import numpy as np
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from router.query_router import route_question
 from pipeline import run_pipeline
+
+from auth.dependencies import get_current_user
+from database.models import User, Dataset
+from database.postgres import get_db
 
 
 # ============================================================
@@ -81,11 +94,18 @@ def make_json_safe(value):
 
 @router.post("/")
 def query_dataset(
-    request: QueryRequest
+    request: QueryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Ask a natural-language question about
     a selected dataset.
+
+    A valid JWT access token is required.
+
+    The logged-in user can only query datasets
+    that belong to that user.
 
     The question is routed to either:
 
@@ -130,10 +150,31 @@ def query_dataset(
             detail="Question cannot be empty."
         )
 
+    # ========================================================
+    # 3. VERIFY DATASET OWNERSHIP
+    # ========================================================
+
+    dataset = db.execute(
+        select(Dataset).where(
+            Dataset.id == request.dataset_id,
+            Dataset.user_id == current_user.id
+        )
+    ).scalar_one_or_none()
+
+    if dataset is None:
+
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Dataset with ID {request.dataset_id} "
+                "does not exist."
+            )
+        )
+
     try:
 
         # ====================================================
-        # 3. DETERMINE ROUTE
+        # 4. DETERMINE ROUTE
         # ====================================================
 
         route = route_question(
@@ -142,6 +183,22 @@ def query_dataset(
 
         print(
             "\n[QUERY API] ========================="
+        )
+
+        print(
+            "[QUERY API] User ID:"
+        )
+
+        print(
+            current_user.id
+        )
+
+        print(
+            "[QUERY API] User Email:"
+        )
+
+        print(
+            current_user.email
         )
 
         print(
@@ -161,6 +218,14 @@ def query_dataset(
         )
 
         print(
+            "[QUERY API] Dataset Owner ID:"
+        )
+
+        print(
+            dataset.user_id
+        )
+
+        print(
             "[QUERY API] Route:"
         )
 
@@ -169,7 +234,7 @@ def query_dataset(
         )
 
         # ====================================================
-        # 4. RUN PIPELINE
+        # 5. RUN PIPELINE
         # ====================================================
 
         result = run_pipeline(
@@ -179,7 +244,7 @@ def query_dataset(
         )
 
         # ====================================================
-        # 5. BUILD BASE RESPONSE
+        # 6. BUILD BASE RESPONSE
         # ====================================================
 
         response = {
@@ -203,7 +268,7 @@ def query_dataset(
         }
 
         # ====================================================
-        # 6. ADD ANALYSIS DETAILS
+        # 7. ADD ANALYSIS DETAILS
         # ====================================================
 
         if result.get(
@@ -217,7 +282,7 @@ def query_dataset(
             )
 
         # ====================================================
-        # 7. ADD RAG DETAILS
+        # 8. ADD RAG DETAILS
         # ====================================================
 
         elif result.get(
@@ -231,7 +296,7 @@ def query_dataset(
             )
 
         # ====================================================
-        # 8. DEBUG RESPONSE
+        # 9. DEBUG RESPONSE
         # ====================================================
 
         print(
@@ -247,7 +312,7 @@ def query_dataset(
         )
 
         # ====================================================
-        # 9. RETURN JSON-SAFE RESPONSE
+        # 10. RETURN JSON-SAFE RESPONSE
         # ====================================================
 
         return make_json_safe(
@@ -272,6 +337,14 @@ def query_dataset(
             status_code=400,
             detail=str(error)
         )
+
+    # ========================================================
+    # HTTP EXCEPTION
+    # ========================================================
+
+    except HTTPException:
+
+        raise
 
     # ========================================================
     # UNEXPECTED ERROR

@@ -10,15 +10,25 @@ from fastapi import (
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from database.models import Dataset
+from database.models import Dataset, User
 from database.postgres import get_db, engine
 
+from auth.dependencies import get_current_user
+
+
+# ============================================================
+# ROUTER
+# ============================================================
 
 router = APIRouter(
     prefix="/datasets",
     tags=["Datasets"]
 )
 
+
+# ============================================================
+# UPLOAD DIRECTORY
+# ============================================================
 
 UPLOAD_DIR = Path("uploads")
 
@@ -29,23 +39,28 @@ UPLOAD_DIR = Path("uploads")
 
 @router.get("/")
 def list_datasets(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Return all uploaded datasets.
+    Return datasets belonging only to the logged-in user.
+
+    Authentication:
+    A valid JWT access token is required.
     """
 
     datasets = db.execute(
         select(Dataset)
+        .where(
+            Dataset.user_id == current_user.id
+        )
         .order_by(
             Dataset.created_at.desc()
         )
     ).scalars().all()
 
     return {
-
-        "count":
-            len(datasets),
+        "count": len(datasets),
 
         "datasets": [
 
@@ -88,16 +103,20 @@ def list_datasets(
 def preview_dataset(
     dataset_id: int,
     limit: int = 10,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Return a preview of the uploaded dataset.
+    Return a preview of the logged-in user's dataset.
 
     Default:
         10 rows
 
     Maximum:
         100 rows
+
+    Authentication:
+    A valid JWT access token is required.
     """
 
     print(
@@ -110,6 +129,10 @@ def preview_dataset(
 
     print(
         f"[DEBUG] limit = {limit}"
+    )
+
+    print(
+        f"[DEBUG] current_user_id = {current_user.id}"
     )
 
     # ========================================================
@@ -131,12 +154,13 @@ def preview_dataset(
         )
 
     # ========================================================
-    # 2. FIND DATASET
+    # 2. FIND USER'S DATASET
     # ========================================================
 
     dataset = db.execute(
         select(Dataset).where(
-            Dataset.id == dataset_id
+            Dataset.id == dataset_id,
+            Dataset.user_id == current_user.id
         )
     ).scalar_one_or_none()
 
@@ -283,11 +307,12 @@ def preview_dataset(
 @router.get("/{dataset_id}/statistics")
 def dataset_statistics(
     dataset_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Return statistical summary for numeric
-    columns in a dataset.
+    columns in the logged-in user's dataset.
 
     Statistics:
 
@@ -296,6 +321,9 @@ def dataset_statistics(
         average
         minimum
         maximum
+
+    Authentication:
+    A valid JWT access token is required.
     """
 
     print(
@@ -306,13 +334,18 @@ def dataset_statistics(
         f"[DEBUG] dataset_id = {dataset_id}"
     )
 
+    print(
+        f"[DEBUG] current_user_id = {current_user.id}"
+    )
+
     # ========================================================
-    # 1. FIND DATASET
+    # 1. FIND USER'S DATASET
     # ========================================================
 
     dataset = db.execute(
         select(Dataset).where(
-            Dataset.id == dataset_id
+            Dataset.id == dataset_id,
+            Dataset.user_id == current_user.id
         )
     ).scalar_one_or_none()
 
@@ -564,15 +597,21 @@ def dataset_statistics(
 @router.get("/{dataset_id}")
 def get_dataset(
     dataset_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Return details of a specific dataset.
+    Return details of a dataset belonging
+    to the logged-in user.
+
+    Authentication:
+    A valid JWT access token is required.
     """
 
     dataset = db.execute(
         select(Dataset).where(
-            Dataset.id == dataset_id
+            Dataset.id == dataset_id,
+            Dataset.user_id == current_user.id
         )
     ).scalar_one_or_none()
 
@@ -624,10 +663,12 @@ def get_dataset(
 @router.delete("/{dataset_id}")
 def delete_dataset(
     dataset_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Delete a dataset and all associated resources.
+    Delete a dataset belonging to the logged-in user
+    and all associated resources.
 
     Deletes:
 
@@ -635,15 +676,19 @@ def delete_dataset(
         2. PostgreSQL dataset table
         3. Dataset embeddings
         4. Uploaded physical file
+
+    Authentication:
+    A valid JWT access token is required.
     """
 
     # ========================================================
-    # 1. FIND DATASET
+    # 1. FIND USER'S DATASET
     # ========================================================
 
     dataset = db.execute(
         select(Dataset).where(
-            Dataset.id == dataset_id
+            Dataset.id == dataset_id,
+            Dataset.user_id == current_user.id
         )
     ).scalar_one_or_none()
 

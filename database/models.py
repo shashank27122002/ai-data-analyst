@@ -1,9 +1,20 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text
+)
 
 from database.postgres import Base
 
+
+# ============================================================
+# DATASET MODEL
+# ============================================================
 
 class Dataset(Base):
     __tablename__ = "datasets"
@@ -11,6 +22,13 @@ class Dataset(Base):
     id = Column(
         Integer,
         primary_key=True,
+        index=True
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
         index=True
     )
 
@@ -115,4 +133,113 @@ class User(Base):
     last_login_at = Column(
         DateTime,
         nullable=True
+    )
+# ============================================================
+# REFRESH TOKEN MODEL
+# ============================================================
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    token_hash = Column(
+        String(128),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    expires_at = Column(
+        DateTime,
+        nullable=False
+    )
+
+    revoked_at = Column(
+        DateTime,
+        nullable=True
+    )
+# ============================================================
+# REPORT MODEL
+# ============================================================
+
+class Report(Base):
+    __tablename__ = "reports"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
+
+    dataset_id = Column(
+        Integer,
+        ForeignKey("datasets.id"),
+        nullable=False,
+        index=True
+    )
+
+    dataset_name = Column(
+        String(255),
+        nullable=False
+    )
+
+    question = Column(
+        Text,
+        nullable=False
+    )
+
+    answer = Column(
+        Text,
+        nullable=False
+    )
+
+    operation = Column(
+        String(100),
+        nullable=True
+    )
+
+    column = Column(
+        String(255),
+        nullable=True
+    )
+
+    group_by = Column(
+        String(255),
+        nullable=True
+    )
+
+    result = Column(
+        Text,
+        nullable=True
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
     )
