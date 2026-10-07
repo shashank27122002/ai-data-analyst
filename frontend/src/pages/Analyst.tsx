@@ -142,12 +142,17 @@ function Analyst() {
   // LOAD REPORT HISTORY
   // ==========================================================
 
-  function loadReports() {
-
-    setReports(
-      getReports()
-    );
-
+  async function loadReports() {
+    try {
+      const response = await getReports();
+      setReports(response);
+    } catch (error) {
+      console.error(
+        "Failed to load reports:",
+        error
+      );
+      setReports([]);
+    }
   }
 
 
@@ -222,7 +227,7 @@ function Analyst() {
   // SAVE REPORT
   // ==========================================================
 
-  function handleSaveReport() {
+  async function handleSaveReport() {
 
     if (
       !selectedDataset ||
@@ -233,7 +238,7 @@ function Analyst() {
 
     }
 
-    saveReport({
+    await saveReport({
 
       datasetId:
         selectedDataset.dataset_id,
@@ -262,9 +267,9 @@ function Analyst() {
     });
 
     setReportSaved(true);
-
+    const updatedReports = await getReports();
     setReports(
-      getReports()
+      updatedReports
     );
 
   }
@@ -1892,9 +1897,9 @@ function Analyst() {
               <button
                 type="button"
                 className="ask-button"
-                onClick={() => {
+                onClick={async () => {
 
-                  clearReports();
+                  await clearReports();
 
                   setReports([]);
 
@@ -2103,14 +2108,15 @@ function Analyst() {
 
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
 
-                          deleteReport(
+                          await deleteReport(
                             report.id
                           );
+                          const updatedReports = await getReports();
 
                           setReports(
-                            getReports()
+                            updatedReports
                           );
 
                         }}

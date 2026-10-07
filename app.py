@@ -6,6 +6,7 @@ from api.auth_router import router as auth_router
 from api.upload import router as upload_router
 from api.datasets import router as datasets_router
 from api.query import router as query_router
+from api.report import router as reports_router
 
 from config import settings
 from database.postgres import engine
@@ -52,6 +53,8 @@ app.include_router(datasets_router)
 app.include_router(query_router)
 
 app.include_router(auth_router)
+
+app.include_router(reports_router)
 
 
 # ============================================================

@@ -181,7 +181,7 @@ async function refreshAccessToken(): Promise<string | null> {
 // 4. Retries original request once
 // ============================================================
 
-async function apiFetch(
+export async function apiFetch(
   url: string,
   options: RequestInit = {},
   retry: boolean = true

@@ -1,37 +1,28 @@
+import { apiFetch } from "../api/api";
 import type { Report } from "../types/report";
 
-const STORAGE_KEY = "ai_data_analyst_reports";
+const API_BASE_URL = "http://localhost:8000";
+
 
 // ============================================================
 // GET ALL REPORTS
 // ============================================================
 
-export function getReports(): Report[] {
-  try {
-    const stored = localStorage.getItem(
-      STORAGE_KEY
+export async function getReports(): Promise<Report[]> {
+
+  const response = await apiFetch(
+    `${API_BASE_URL}/reports/`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Failed to load reports."
     );
-
-    if (!stored) {
-      return [];
-    }
-
-    const parsed = JSON.parse(stored);
-
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed as Report[];
-
-  } catch (error) {
-    console.error(
-      "Failed to load reports:",
-      error
-    );
-
-    return [];
   }
+
+  const data = await response.json();
+
+  return data.reports;
 }
 
 
@@ -39,39 +30,39 @@ export function getReports(): Report[] {
 // SAVE REPORT
 // ============================================================
 
-export function saveReport(
+export async function saveReport(
   report: Omit<Report, "id" | "createdAt">
-): Report {
+): Promise<Report> {
 
-  const newReport: Report = {
-    ...report,
+  const response = await apiFetch(
+    `${API_BASE_URL}/reports/`,
+    {
+      method: "POST",
 
-    id: crypto.randomUUID(),
+      headers: {
+        "Content-Type": "application/json",
+      },
 
-    createdAt:
-      new Date().toISOString(),
-  };
-
-
-  const reports =
-    getReports();
-
-
-  const updatedReports = [
-    newReport,
-    ...reports,
-  ];
-
-
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(
-      updatedReports
-    )
+      body: JSON.stringify({
+        dataset_id: report.datasetId,
+        dataset_name: report.datasetName,
+        question: report.question,
+        answer: report.answer,
+        operation: report.operation ?? null,
+        column: report.column ?? null,
+        group_by: report.groupBy ?? null,
+        result: report.result ?? null,
+      }),
+    }
   );
 
+  if (!response.ok) {
+    throw new Error(
+      "Failed to save report."
+    );
+  }
 
-  return newReport;
+  return response.json();
 }
 
 
@@ -79,27 +70,22 @@ export function saveReport(
 // DELETE ONE REPORT
 // ============================================================
 
-export function deleteReport(
+export async function deleteReport(
   reportId: string
-): void {
+): Promise<void> {
 
-  const reports =
-    getReports();
-
-
-  const updatedReports =
-    reports.filter(
-      (report) =>
-        report.id !== reportId
-    );
-
-
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(
-      updatedReports
-    )
+  const response = await apiFetch(
+    `${API_BASE_URL}/reports/${reportId}`,
+    {
+      method: "DELETE",
+    }
   );
+
+  if (!response.ok) {
+    throw new Error(
+      "Failed to delete report."
+    );
+  }
 }
 
 
@@ -107,8 +93,18 @@ export function deleteReport(
 // DELETE ALL REPORTS
 // ============================================================
 
-export function clearReports(): void {
-  localStorage.removeItem(
-    STORAGE_KEY
+export async function clearReports(): Promise<void> {
+
+  const response = await apiFetch(
+    `${API_BASE_URL}/reports/`,
+    {
+      method: "DELETE",
+    }
   );
+
+  if (!response.ok) {
+    throw new Error(
+      "Failed to clear reports."
+    );
+  }
 }

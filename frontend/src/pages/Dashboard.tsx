@@ -111,9 +111,9 @@ function Dashboard() {
 
       }
 
-
+      const loadedReports = await getReports();
       setReports(
-        getReports()
+        loadedReports
       );
 
     } catch (error) {

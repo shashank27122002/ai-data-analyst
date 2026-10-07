@@ -40,14 +40,27 @@ function Reports() {
   }, []);
 
 
-  function loadReports() {
+  async function loadReports() {
 
-    const storedReports =
-      getReports();
+    try {
 
-    setReports(
-      storedReports
-    );
+      const storedReports =
+        await getReports();
+
+      setReports(
+        storedReports
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to load reports:",
+        error
+      );
+
+      setReports([]);
+
+    }
 
   }
 
@@ -142,17 +155,31 @@ function Reports() {
   // DELETE ONE REPORT
   // ==========================================================
 
-  function handleDeleteReport(
+  async function handleDeleteReport(
     reportId: string
   ) {
 
-    deleteReport(
-      reportId
-    );
+    try {
 
-    setReports(
-      getReports()
-    );
+      await deleteReport(
+        reportId
+      );
+
+      const updatedReports =
+        await getReports();
+
+      setReports(
+        updatedReports
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to delete report:",
+        error
+      );
+
+    }
 
   }
 
@@ -161,17 +188,28 @@ function Reports() {
   // DELETE ALL REPORTS
   // ==========================================================
 
-  function handleClearAll() {
+  async function handleClearAll() {
 
-    clearReports();
+    try {
 
-    setReports([]);
+      await clearReports();
 
-    setSearchQuery("");
+      setReports([]);
 
-    setSelectedDataset(
-      "ALL"
-    );
+      setSearchQuery("");
+
+      setSelectedDataset(
+        "ALL"
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to clear reports:",
+        error
+      );
+
+    }
 
   }
 
@@ -591,6 +629,7 @@ function Reports() {
 
     <div className="page">
 
+
       {/* ====================================================
           HEADER
       ==================================================== */}
@@ -920,6 +959,7 @@ function Reports() {
                 }}
               >
 
+
                 {/* ==========================================
                     REPORT HEADER
                 ========================================== */}
@@ -1136,6 +1176,7 @@ function Reports() {
                   }
 
                 </div>
+
 
               </section>
 
