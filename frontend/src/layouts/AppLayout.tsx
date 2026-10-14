@@ -1,9 +1,9 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet} from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { logout } from "../api/api";
 
 function AppLayout() {
-  const navigate = useNavigate();
+
 
   async function handleLogout() {
     try {
