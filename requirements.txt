@@ -67,3 +67,4 @@ email-validator
 # ---------- Testing ----------
 pytest
 pytest-asyncio
+pwdlib[argon2]
