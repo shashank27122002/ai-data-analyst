@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -30,12 +32,20 @@ app = FastAPI(
 # CORS
 # ============================================================
 
+# Set FRONTEND_URL in Render to your deployed frontend URL.
+frontend_url = os.getenv("FRONTEND_URL", "").rstrip("/")
+
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+if frontend_url:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,13 +57,9 @@ app.add_middleware(
 # ============================================================
 
 app.include_router(upload_router)
-
 app.include_router(datasets_router)
-
 app.include_router(query_router)
-
 app.include_router(auth_router)
-
 app.include_router(reports_router)
 
 
@@ -85,24 +91,17 @@ def health():
 
 @app.get("/db-health")
 def database_health():
-
     try:
-
         with engine.connect() as connection:
-
-            connection.execute(
-                text("SELECT 1")
-            )
+            connection.execute(text("SELECT 1"))
 
         return {
             "database": "connected",
             "status": "healthy"
         }
 
-    except Exception as error:
-
+    except Exception:
         return {
             "database": "disconnected",
-            "status": "unhealthy",
-            "error": str(error)
+            "status": "unhealthy"
         }

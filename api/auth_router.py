@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 
 from fastapi import (
@@ -43,12 +44,12 @@ router = APIRouter(
 
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
-# Local development:
-# False because the local API uses HTTP.
-#
-# Production:
-# Change this to True when the application runs on HTTPS.
-REFRESH_COOKIE_SECURE = False
+# Detect whether the application is running on Render.
+IS_PRODUCTION = os.getenv("RENDER", "").lower() == "true"
+
+# Local development uses HTTP; production uses HTTPS.
+REFRESH_COOKIE_SECURE = IS_PRODUCTION
+REFRESH_COOKIE_SAMESITE = "none" if IS_PRODUCTION else "lax"
 
 REFRESH_COOKIE_NAME = "refresh_token"
 
@@ -138,25 +139,16 @@ def login(
             detail="Account is inactive",
         )
 
-    # -----------------------------------------------------
-    # Update last login
-    # -----------------------------------------------------
-
+    # Update last login.
     user.last_login_at = datetime.utcnow()
 
-    # -----------------------------------------------------
-    # Create short-lived access JWT
-    # -----------------------------------------------------
-
+    # Create short-lived access JWT.
     access_token = create_access_token(
         user_id=user.id,
         role=user.role,
     )
 
-    # -----------------------------------------------------
-    # Create secure refresh token
-    # -----------------------------------------------------
-
+    # Create refresh token.
     raw_refresh_token = generate_refresh_token()
 
     refresh_token_hash = hash_refresh_token(
@@ -176,26 +168,18 @@ def login(
     db.add(refresh_token)
     db.commit()
 
-    # -----------------------------------------------------
-    # Store refresh token in HttpOnly cookie
-    # -----------------------------------------------------
-
+    # Store refresh token in an HttpOnly cookie.
     response.set_cookie(
         key=REFRESH_COOKIE_NAME,
         value=raw_refresh_token,
         httponly=True,
         secure=REFRESH_COOKIE_SECURE,
-        samesite="lax",
+        samesite=REFRESH_COOKIE_SAMESITE,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         path="/api/auth",
     )
 
-    # -----------------------------------------------------
-    # Return only access token
-    #
-    # Refresh token is NOT returned in JSON.
-    # -----------------------------------------------------
-
+    # Return only the access token.
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
@@ -226,26 +210,17 @@ def refresh_access_token(
     The refresh token is rotated after successful use.
     """
 
-    # -----------------------------------------------------
-    # Check cookie
-    # -----------------------------------------------------
-
+    # Check cookie.
     if not refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token missing",
         )
 
-    # -----------------------------------------------------
-    # Hash incoming refresh token
-    # -----------------------------------------------------
-
+    # Hash incoming refresh token.
     token_hash = hash_refresh_token(refresh_token)
 
-    # -----------------------------------------------------
-    # Find active refresh-token session
-    # -----------------------------------------------------
-
+    # Find active refresh-token session.
     stored_token = (
         db.query(RefreshToken)
         .filter(
@@ -261,20 +236,14 @@ def refresh_access_token(
             detail="Invalid refresh token",
         )
 
-    # -----------------------------------------------------
-    # Check expiration
-    # -----------------------------------------------------
-
+    # Check expiration.
     if stored_token.expires_at <= datetime.utcnow():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token expired",
         )
 
-    # -----------------------------------------------------
-    # Find active user
-    # -----------------------------------------------------
-
+    # Find active user.
     user = (
         db.query(User)
         .filter(
@@ -290,16 +259,10 @@ def refresh_access_token(
             detail="Invalid refresh token",
         )
 
-    # -----------------------------------------------------
-    # Revoke old refresh token
-    # -----------------------------------------------------
-
+    # Revoke old refresh token.
     stored_token.revoked_at = datetime.utcnow()
 
-    # -----------------------------------------------------
-    # Generate new refresh token
-    # -----------------------------------------------------
-
+    # Generate new refresh token.
     new_raw_refresh_token = generate_refresh_token()
 
     new_refresh_token_hash = hash_refresh_token(
@@ -318,10 +281,7 @@ def refresh_access_token(
 
     db.add(new_refresh_token)
 
-    # -----------------------------------------------------
-    # Generate new access token
-    # -----------------------------------------------------
-
+    # Generate new access token.
     access_token = create_access_token(
         user_id=user.id,
         role=user.role,
@@ -329,16 +289,13 @@ def refresh_access_token(
 
     db.commit()
 
-    # -----------------------------------------------------
-    # Replace old refresh-token cookie
-    # -----------------------------------------------------
-
+    # Replace old refresh-token cookie.
     response.set_cookie(
         key=REFRESH_COOKIE_NAME,
         value=new_raw_refresh_token,
         httponly=True,
         secure=REFRESH_COOKIE_SECURE,
-        samesite="lax",
+        samesite=REFRESH_COOKIE_SAMESITE,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         path="/api/auth",
     )
@@ -368,10 +325,7 @@ def logout(
     the refresh-token cookie.
     """
 
-    # -----------------------------------------------------
-    # Revoke refresh token in database
-    # -----------------------------------------------------
-
+    # Revoke refresh token in database.
     if refresh_token:
         token_hash = hash_refresh_token(refresh_token)
 
@@ -388,13 +342,13 @@ def logout(
             stored_token.revoked_at = datetime.utcnow()
             db.commit()
 
-    # -----------------------------------------------------
-    # Delete browser cookie
-    # -----------------------------------------------------
-
+    # Delete browser cookie.
     response.delete_cookie(
         key=REFRESH_COOKIE_NAME,
         path="/api/auth",
+        secure=REFRESH_COOKIE_SECURE,
+        httponly=True,
+        samesite=REFRESH_COOKIE_SAMESITE,
     )
 
     return {
